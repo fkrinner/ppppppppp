@@ -10,18 +10,18 @@
 
 class amplitude {
 	public:
-		amplitude(kinematicSignature kinSignature, std::string name);
+		amplitude (std::shared_ptr<kinematicSignature> kinSignature, std::string name);
 
-		virtual std::complex<double> eval(const std::vector<double>& kin) const;
+		virtual std::complex<double> eval (const std::vector<double>& kin) const;
 
-		std::string name() const {return _name;}
-		size_t      nKin() const {return _kinSignature.nKin();}
-		kinematicSignature kinSignature() const { return _kinSignature;}
+		std::string                         name         () const {return _name;}
+		size_t                              nKin         () const {return _kinSignature->nKin();}
+		std::shared_ptr<kinematicSignature> kinSignature () const { return _kinSignature;}
 		
 
 	protected:
-		kinematicSignature _kinSignature;
-		std::string        _name;
+		std::shared_ptr<kinematicSignature> _kinSignature;
+		std::string                         _name;
 
 };
 

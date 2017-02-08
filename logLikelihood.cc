@@ -3,6 +3,11 @@
 #include<iostream>
 #include<nlopt.hpp>
 
+#include"Math/Minimizer.h"
+#include"Math/Factory.h"
+#include"Math/Functor.h"
+
+
 double ff_nlopt(const std::vector<double> &x, std::vector<double> &grad, void* f_data) {
 	logLikelihood* inst = reinterpret_cast<logLikelihood*>(f_data);
 	double ret   = inst->nloptCall(x,grad);
@@ -16,12 +21,12 @@ logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes
 		throw;
 	}	
 	_kinSignature = _amplitudes[0]->kinSignature();
-	if (not (_kinSignature == integral->kinSignature())) {
+	if (not (*_kinSignature == *(integral->kinSignature()))) {
 		std::cerr << "logLikelihood::logLikelihood(...): ERROR: Kinematic signature of integral differs" << std::endl;
 		throw;
 	}
 	for (std::shared_ptr<amplitude> a : _amplitudes) {
-		if (not(a->kinSignature() == _kinSignature)) {
+		if (not(*(a->kinSignature()) == *_kinSignature)) {
 			std::cerr << "logLikelihood::logLikelihood(...): ERROR: Amplitudes have different kinematic signatures" << std::endl;
 			throw;
 		}
@@ -48,9 +53,9 @@ logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes
 	}
 }
 
-std::pair<double, std::vector<std::complex<double> > > logLikelihood::fit(std::vector<std::complex<double> >& parameters) {
+std::pair<double, std::vector<std::complex<double> > > logLikelihood::fitNlopt(std::vector<std::complex<double> >& parameters) {
 	nlopt::opt opt = nlopt::opt(nlopt::LD_LBFGS, getNpar());
-	opt.set_ftol_abs(1.E-2);
+	opt.set_ftol_abs(1.E-14);
 	opt.set_min_objective(ff_nlopt, this);
 	std::vector<double> startPars(getNpar());
 	size_t skip = 0;
@@ -79,6 +84,106 @@ std::pair<double, std::vector<std::complex<double> > > logLikelihood::fit(std::v
 	}
 //	std::cout << "The fit gave a best value of " << bestVal << std::endl;
 	return std::pair<double, std::vector<std::complex<double> > >(bestVal, retVal);
+}
+
+std::pair<double, std::vector<std::complex<double> > > logLikelihood::fitROOT(std::vector<std::complex<double> >& parameters) {
+	std::unique_ptr<ROOT::Math::Minimizer> min(ROOT::Math::Factory::CreateMinimizer("Minuit2","Migrad"));
+	min->SetMaxFunctionCalls(100000);
+	min->SetMaxIterations(100000);
+	min->SetTolerance(1.);
+	ROOT::Math::Functor functor(*this,getNpar());
+	min->SetFunction(functor);
+
+	size_t skip = 1;
+	std::complex<double> avg(0.,0.);
+	for (std::complex<double> a : parameters) {
+		avg += a;
+	}
+	avg /= nAmpl();
+	double step = pow(std::norm(avg), .5)/10.;
+	min->SetVariable(0, "real0", parameters[0].real(), step);
+	if (not _fixFirstPhase) {
+		++skip;
+		min->SetVariable(1, "imag0", parameters[1].imag(), step);
+	}
+	for (size_t a = 1; a < nAmpl(); ++a) {
+		std::string realName = std::string("real") + std::to_string(a);
+		std::string imagName = std::string("imag") + std::to_string(a);
+		min->SetVariable(2*a-2+skip, realName, parameters[a].real(), step);
+		min->SetVariable(2*a-1+skip, imagName, parameters[a].imag(), step);
+	}
+	min->Minimize();
+	const double *xs = min->X();
+	std::vector<std::complex<double> > bestPar(nAmpl());
+	if (_fixFirstPhase) {
+		bestPar[0] = std::complex<double>(xs[0], 0.);
+	} else {
+		bestPar[0] = std::complex<double>(xs[0], xs[1]);
+	}
+	for (size_t a = 1; a < nAmpl(); ++a) {
+		bestPar[a] = std::complex<double>(xs[2*a-2+skip], xs[2*a-1+skip]);
+	}
+	double retVal = eval(bestPar);
+/*
+	std::cout << "Calculating hessian" << std::endl;
+	min->Hesse();
+	std::cout << "Hessian calculated" << std::endl;
+	double* hessianValues = 0;
+	if (not min->GetHessianMatrix(hessianValues)) {
+		std::cout << "logLikelihood::fitROOT(...): ERROR: Could not get hessian values" << std::endl;
+		throw;
+	}
+	_hessian = std::vector<std::vector<double> >(2*nAmpl(), std::vector<double>(2*nAmpl(), 0.));
+	size_t nLineHessian = 2*_nAmpl;
+	if (_fixFirstPhase) {
+		nLineHessian -= 1;
+	}
+	_hessian[0][0] = hessianValues[0];
+	if (not _fixFirstPhase) {
+		_hessian[0][1] = hessianValues[1];
+		_hessian[1][0] = hessianValues[nLineHessian];
+		_hessian[1][1] = hessianValues[nLineHessian+1];
+	}
+	for (size_t a1 = 1; a1 < nAmpl(); ++a1) {
+		_hessian[0][2*a1  ] = hessianValues[2*a1  ];
+		_hessian[0][2*a1+1] = hessianValues[2*a1+1];
+
+		_hessian[2*a1  ][0] = hessianValues[(2*a1  )*nLineHessian];
+		_hessian[2*a1+1][0] = hessianValues[(2*a1+1)*nLineHessian];
+		if (not _fixFirstPhase) {
+			_hessian[1][2*a1  ] = hessianValues[2*a1   + nLineHessian];
+			_hessian[1][2*a1+1] = hessianValues[2*a1+1 + nLineHessian];
+
+			_hessian[2*a1  ][1] = hessianValues[1+(2*a1  )*nLineHessian];
+			_hessian[2*a1+1][1] = hessianValues[1+(2*a1+1)*nLineHessian];
+		}
+		for (size_t a2 = 1; a2 < nAmpl(); ++a2) {
+			std::cout << a1 << " " << a2 << " " << nAmpl() << std::endl;
+			_hessian[2*a1  ][2*a2  ] = hessianValues[2*a1  +(2*a2  )*nLineHessian];
+			_hessian[2*a1  ][2*a2+1] = hessianValues[2*a1  +(2*a2+1)*nLineHessian];
+			_hessian[2*a1+1][2*a2  ] = hessianValues[2*a1+1+(2*a2  )*nLineHessian];
+			_hessian[2*a1+1][2*a2+1] = hessianValues[2*a1+1+(2*a2+1)*nLineHessian];
+		}
+	}
+*/
+	return std::pair<double, std::vector<std::complex<double> > >(retVal, bestPar);
+}
+
+double logLikelihood::operator()(const double* parameters) const {
+	std::vector<std::complex<double> > prodAmps(nAmpl());
+	size_t skip = 0;
+	if (_fixFirstPhase) {
+		skip = 1;
+		prodAmps[0] = std::complex<double>(parameters[0], 0.);
+
+	} else {
+		skip = 2;
+		prodAmps[0] = std::complex<double>(parameters[0], parameters[1]);
+	}
+	for (size_t a = 1; a < nAmpl(); ++a){
+		prodAmps[a] = std::complex<double>(parameters[2*a-2+skip],parameters[2*a-1+skip]);
+	}
+	return eval(prodAmps);
 }
 
 double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
@@ -231,4 +336,5 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 	}
 	return true;
 }
+
 

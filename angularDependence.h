@@ -3,45 +3,46 @@
 #include<string>
 #include<vector>
 #include<complex>
+#include<memory>
 #include"kinematicSignature.h"
 
 class angularDependence {
 	public:
-		angularDependence(kinematicSignature kinSignature, std::string name);
+		angularDependence (std::shared_ptr<kinematicSignature> kinSignature, std::string name);
 
-		virtual std::complex<double> eval(const std::vector<double>& kin) const;
+		virtual std::complex<double> eval (const std::vector<double>& kin) const;
 
-		std::string name() const {return _name;}	
-		size_t      nKin() const {return _kinSignature.nKin();}
-		kinematicSignature kinSignature() const {return _kinSignature;}
+		std::string                         name()         const {return _name;}	
+		size_t                              nKin()         const {return _kinSignature->nKin();}
+		std::shared_ptr<kinematicSignature> kinSignature() const {return _kinSignature;}
 	protected:
-		kinematicSignature _kinSignature;
-		std::string        _name;
+		std::shared_ptr<kinematicSignature> _kinSignature;
+		std::string                         _name;
 };
 
 class sameMassZeroS : public angularDependence {
 	public:
-		sameMassZeroS(double fsMass);
+		sameMassZeroS (double fsMass);
 
-		std::complex<double> eval(const std::vector<double>& kin) const override;
+		std::complex<double> eval (const std::vector<double>& kin) const override;
 	private:
 		double _fsMass;
 };
 
 class sameMassOneP : public angularDependence {
 	public:
-		sameMassOneP(double fsMass);
+		sameMassOneP (double fsMass);
 
-		std::complex<double> eval(const std::vector<double>& kin) const override;
+		std::complex<double> eval (const std::vector<double>& kin) const override;
 	private:
 		double _fsMass;
 };
 
 class sameMassTwoD : public angularDependence {
 	public:
-		sameMassTwoD(double fsMass);
+		sameMassTwoD (double fsMass);
 
-		std::complex<double> eval(const std::vector<double>& kin) const override;
+		std::complex<double> eval (const std::vector<double>& kin) const override;
 	private:
 		double _fsMass;
 };

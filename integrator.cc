@@ -1,6 +1,6 @@
 #include"integrator.h"
 #include<iostream>
-#include <fstream>
+#include<fstream>
 integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGenerator, const std::vector<std::shared_ptr<amplitude> >& amplitudes):
 	_isIntegrated(false), _nAmpl(amplitudes.size()), _nPoints(integralPoints), _amplitudes(amplitudes), _generator(pointGenerator), _integralMatrix() {
 	if (_amplitudes.size() == 0) {
@@ -9,12 +9,12 @@ integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGe
 	}
 	_kinSignature = _amplitudes[0]->kinSignature();
 	for (std::shared_ptr<amplitude> a : _amplitudes) {
-		if (not (a->kinSignature() == _kinSignature)) {
+		if (not (*(a->kinSignature()) == *_kinSignature)) {
 			std::cerr << "integrator::integrator(...): ERROR: Amplitudes with different signatures found" << std::endl;
 			throw;
 		}
 	}
-	if (not (_generator->kinSignature() == _amplitudes[0]->kinSignature())) {
+	if (not (*(_generator->kinSignature()) == *(_amplitudes[0]->kinSignature()))) {
 		std::cerr << "integrator::integrator(...): ERROR: Kinematic signatures in amplitudes and generator differ" << std::endl;
 		throw;
 	}

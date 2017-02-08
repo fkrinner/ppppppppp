@@ -1,12 +1,12 @@
 #include"amplitude.h"
 #include<iostream>
 
-amplitude::amplitude(kinematicSignature kinSignature, std::string name):
+amplitude::amplitude(std::shared_ptr<kinematicSignature> kinSignature, std::string name):
 	_kinSignature(kinSignature), _name(name) {}
 
 std::complex<double> amplitude::eval(const std::vector<double>& kin) const {
-	if (kin.size() != _kinSignature.nKin()) {
-		std::cerr << "amplitude::eval(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature.nKin() << "). Returning zero." << std::endl;
+	if (kin.size() != _kinSignature->nKin()) {
+		std::cerr << "amplitude::eval(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
 		return std::complex<double>(0.,0.);
 	}
 	std::cerr << " amplitude::eval(...): ERROR: Calling eval of the base class. Returning zero." << std::endl;
@@ -18,11 +18,13 @@ threeParticleIsobaricAmplitude::threeParticleIsobaricAmplitude(bool boseSymmetri
 
 
 std::complex<double> threeParticleIsobaricAmplitude::evalSingleSymmTerm(const std::vector<double>& kin) const {
-	if (kin.size() != _kinSignature.nKin()) {
-		std::cerr << "threeParticleIsobaricAmplitude::evalSingleSymmTerm(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature.nKin() << "). Returning zero." << std::endl;
+//	std::cout << "Called single term with " << kin[0] << " " << kin[1] << " " << kin[2] << std::endl;
+
+	if (kin.size() != _kinSignature->nKin()) {
+		std::cerr << "threeParticleIsobaricAmplitude::evalSingleSymmTerm(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
 		return std::complex<double>(0.,0.);
 	}
-	std::vector<size_t> isobarMassIndices = _kinSignature.isobarMassIndices();
+	std::vector<size_t> isobarMassIndices = _kinSignature->isobarMassIndices();
 	if (isobarMassIndices.size() != 1) {
 		std::cerr << "threeParticleIsobaricAmplitude::evalSingleSymmTerm(...): ERROR: Number of isobar masses is not one (" << isobarMassIndices.size() << "). Returning zero" << std::endl;
 		return std::complex<double>(0.,0.);
@@ -32,9 +34,11 @@ std::complex<double> threeParticleIsobaricAmplitude::evalSingleSymmTerm(const st
 }
 
 std::complex<double> threeParticleIsobaricAmplitude::eval(const std::vector<double>& kin) const {
+//	std::cout << "------------------------------------------------------------------" << std::endl;
+//	std::cout << "Called amplitude with " << kin[0] << " " << kin[1] << " " << kin[2] << std::endl;
 	std::complex<double> retVal(0.,0.);
 	if (_bose) {
-		std::vector<std::vector<double> > symmTerms = _kinSignature.getBoseSymmetrizedKinematics(kin);
+		std::vector<std::vector<double> > symmTerms = _kinSignature->getBoseSymmetrizedKinematics(kin);
 		for (std::vector<double>& boseKin : symmTerms) {
 			retVal += evalSingleSymmTerm(boseKin);
 		}

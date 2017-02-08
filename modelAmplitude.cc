@@ -8,7 +8,7 @@ modelAmplitude::modelAmplitude(std::vector<std::complex<double> > transitionAmpl
 	_nAmpl = amplitudes.size();
 	_kinSignature = amplitudes[0]->kinSignature();
 	for (std::shared_ptr<amplitude> a : amplitudes) {
-		if (not ( a->kinSignature() == _kinSignature)) {
+		if (not ( *(a->kinSignature()) == *_kinSignature)) {
 			std::cerr << "modelAmplitude::modelAmplitude(...): ERROR: Different kinematic signatures encountered" << std::endl;
 			throw;
 		}
@@ -27,8 +27,8 @@ modelAmplitude::modelAmplitude(std::vector<std::complex<double> > transitionAmpl
 }
 
 std::complex<double> modelAmplitude::ampl(const std::vector<double>& kin) const {
-	if (kin.size() != _kinSignature.nKin()) {
-		std::cerr << "modelAmplitude::ampl(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature.nKin() << "). Returning zero." << std::endl;
+	if (kin.size() != _kinSignature->nKin()) {
+		std::cerr << "modelAmplitude::ampl(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
 		return std::complex<double>(0.,0.);
 	}
 

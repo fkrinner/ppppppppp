@@ -1,7 +1,7 @@
 #include"generator.h"
 #include<iostream>
 #include"utils.h"
-generator::generator() : _kinSignature(0), _maxFail(1000), _failCount(0) {}
+generator::generator() : _kinSignature(std::make_shared<kinematicSignature>(0)), _maxFail(1000), _failCount(0) {}
 
 std::vector<double> generator::generate() const {
 	std::cerr << "generator::generate(): ERROR: Called base class method. Returning empty vector." << std::endl;
@@ -14,7 +14,7 @@ threeParticleMassGenerator::threeParticleMassGenerator(double initialMass, const
 			std::cerr << "threeParticleMassGenerator::threeParticleMassGenerator(...): Not three fsMasses given: " << _fsMasses.size() << std::endl;
 			throw;
 		}
-		_kinSignature = kinematicSignature(1);
+		_kinSignature = std::make_shared<kinematicSignature>(1);
 }
 
 double s3v(const std::vector<double>& v) {

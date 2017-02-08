@@ -5,6 +5,7 @@ SET(CMAKE_CXX_COMPILER "/opt/rh/devtoolset-3/root/usr/bin/g++")
 SET(CMAKE_MODULE_PATH  ${PROJECT_SOURCE_DIR} )
 
 FIND_PACKAGE(Nlopt)
+FIND_PACKAGE(ROOT 5.34.20 REQUIRED)
 
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -O3 -fopenmp")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -O3")
@@ -58,6 +59,7 @@ TARGET_LINK_LIBRARIES(modelGenerator generator      )
 TARGET_LINK_LIBRARIES(logLikelihood amplitude     )
 TARGET_LINK_LIBRARIES(logLikelihood integrator    )
 TARGET_LINK_LIBRARIES(logLikelihood ${Nlopt_LIBS} )
+TARGET_LINK_LIBRARIES(logLikelihood ${ROOT_LIBS}  )
 
 TARGET_LINK_LIBRARIES(integrator amplitude )
 TARGET_LINK_LIBRARIES(integrator generator )

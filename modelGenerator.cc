@@ -2,7 +2,7 @@
 #include<iostream>
 modelGenerator::modelGenerator(std::shared_ptr<modelAmplitude> model, std::shared_ptr<generator> gen):
 	_maxFail(1000), _failCount(0), _kinSignature(model->kinSignature()), _generator(gen), _model(model) {
-	if (not(_kinSignature == _generator->kinSignature())) {
+	if (not(*_kinSignature == *(_generator->kinSignature()))) {
 		std::cerr << "modelGenerator::modelGenerator(...): ERROR: Kinematic signatures do not match" << std::endl;
 	}
 }
@@ -53,7 +53,7 @@ std::vector<std::vector<double> > modelGenerator::generateDataPoints(size_t nPoi
 		} else {
 			++_failCount;
 			if (_failCount > _maxFail) {
-				std::cerr << "odelGenerator::generateDataPoints(...): Over " << _maxFail << " failed attempts. Aborting." << std::endl;
+				std::cerr << "modelGenerator::generateDataPoints(...): Over " << _maxFail << " failed attempts. Aborting." << std::endl;
 				throw;
 			}
 		}
@@ -66,6 +66,7 @@ std::vector<std::vector<double> > modelGenerator::generateDataPoints(size_t nPoi
 					++count;
 				}
 			}
+//			std::cout << (double)count/found << " vs " << maxWeight/intens << std::endl;
 			found     = count;
 			maxWeight = intens;
 			retVal    = newVal;
