@@ -1,11 +1,6 @@
 #include"logLikelihood.h"
 #include<string>
-#include<iostream>
 #include<nlopt.hpp>
-
-#include"Math/Minimizer.h"
-#include"Math/Factory.h"
-#include"Math/Functor.h"
 
 
 double ff_nlopt(const std::vector<double> &x, std::vector<double> &grad, void* f_data) {
@@ -14,46 +9,29 @@ double ff_nlopt(const std::vector<double> &x, std::vector<double> &grad, void* f
 	return ret;
 }
 
-logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes, std::shared_ptr<integrator> integral):
-	_fixFirstPhase(false), _nCalls(0), _nCallsPrint(10000), _nAmpl(amplitudes.size()), _nPoints(0), _integral(integral), _amplitudes(amplitudes), _points() {
-	if (_amplitudes.size() == 0) {
-		std::cerr << "logLikelihood::logLikelihood(...): ERROR: No amplitudes given" << std::endl;
+logLikelihoodBase::logLikelihoodBase (size_t nAmpl, std::shared_ptr<kinematicSignature> kinSignature, std::shared_ptr<integrator> integral) : 
+	_fixFirstPhase(false), _extended(true), _kinSignature(kinSignature), _nCalls(0), _nCallsPrint(10000), _nAmpl(nAmpl), _nPoints(0), _integral(integral) {
+	if (_nAmpl == 0) {
+		std::cout << "logLikelihoodBase::logLikelihoodBase(...): ERROR: No amplitudes given" << std::endl;
 		throw;
-	}	
-	_kinSignature = _amplitudes[0]->kinSignature();
-	if (not (*_kinSignature == *(integral->kinSignature()))) {
-		std::cerr << "logLikelihood::logLikelihood(...): ERROR: Kinematic signature of integral differs" << std::endl;
-		throw;
-	}
-	for (std::shared_ptr<amplitude> a : _amplitudes) {
-		if (not(*(a->kinSignature()) == *_kinSignature)) {
-			std::cerr << "logLikelihood::logLikelihood(...): ERROR: Amplitudes have different kinematic signatures" << std::endl;
-			throw;
-		}
 	}
 	if (_nAmpl != _integral->nAmpl()) {
-		std::cerr  << "logLikelihood::logLikelihood(...): ERROR: Number of amplitudes does not match in integral" << std::endl;
+		std::cout << "logLikelihoodBase::logLikelihoodBase(...): ERROR: Number of amplitudes does not match" << std::endl;	
+		throw;
 	}
-	for (size_t a = 0; a < _nAmpl; ++a) {
-		std::pair<bool, std::string> waveName =  _integral->getWaveName(a);
-		if (not waveName.first) {
-			std::cerr  << "logLikelihood::logLikelihood(...): ERROR: Could not get wave name from integral" << std::endl;
-			throw;
-		}
-		if (not (_amplitudes[a]->name() == waveName.second)) {
-			std::cerr  << "logLikelihood::logLikelihood(...): ERROR: wave names do not match" << std::endl;
-			throw;
-		}
+	if (not (*(_integral->kinSignature()) == *_kinSignature)) {
+		std::cout << "logLikelihoodBase::logLikelihoodBase(...): ERROR: Kinematic signatures doe not match" << std::endl;
+		throw;	
 	}
 	if (not _integral->isIntegrated()) {
 		if (not _integral->integrate()) {
-			std::cerr << "logLikelihood::logLikelihood(...): ERROR: Could not obtain integral" << std::endl;
+			std::cerr << "logLikelihoodBase::logLikelihoodBase(...): ERROR: Could not obtain integral" << std::endl;
 			throw;
 		}
 	}
 }
 
-std::pair<double, std::vector<std::complex<double> > > logLikelihood::fitNlopt(std::vector<std::complex<double> >& parameters) {
+std::pair<double, std::vector<std::complex<double> > > logLikelihoodBase::fitNlopt(std::vector<std::complex<double> >& parameters) {
 	nlopt::opt opt = nlopt::opt(nlopt::LD_LBFGS, getNpar());
 	opt.set_ftol_abs(1.E-14);
 	opt.set_min_objective(ff_nlopt, this);
@@ -86,6 +64,46 @@ std::pair<double, std::vector<std::complex<double> > > logLikelihood::fitNlopt(s
 	return std::pair<double, std::vector<std::complex<double> > >(bestVal, retVal);
 }
 
+double logLikelihoodBase::nloptCall(const std::vector<double> &x, std::vector<double> &grad) const {
+	if (not x.size() == getNpar()) {
+		std::cerr << "logLikelihood::nloptCall(...): ERROR: Nomber of amplitudes does not match" << std::endl;
+		throw;
+	}
+	std::vector<std::complex<double> > prodAmps(_nAmpl);
+	size_t skip = 0;
+	if (_fixFirstPhase) {
+		prodAmps[0] = std::complex<double>(x[0], 0.);
+		skip = 1;
+	} else {
+		prodAmps[0] = std::complex<double>(x[0], x[1]);
+		skip = 2;
+	}
+	for (size_t a = 1; a < _nAmpl; ++a) {
+		prodAmps[a] = std::complex<double>(x[2*a-2+skip],x[2*a-1+skip]);
+	}
+	if (grad.size() > 0) {
+		std::vector<double> diff = Deval(prodAmps);
+		grad[0] = diff[0];
+		if (not _fixFirstPhase) { // Skip is already set accordingly
+			grad[1] = diff[1];
+		}
+		for (size_t a = 1; a < _nAmpl; ++a) {
+			grad[2*a-2+skip] = diff[2*a  ];
+			grad[2*a-1+skip] = diff[2*a+1];
+		}
+	}
+	return eval(prodAmps);
+}
+
+size_t logLikelihoodBase::getNpar() const {
+	size_t retVal = 2*_nAmpl;
+	if (_fixFirstPhase) {
+		retVal -= 1;
+	}
+	return retVal;
+}
+
+/*
 std::pair<double, std::vector<std::complex<double> > > logLikelihood::fitROOT(std::vector<std::complex<double> >& parameters) {
 	std::unique_ptr<ROOT::Math::Minimizer> min(ROOT::Math::Factory::CreateMinimizer("Minuit2","Migrad"));
 	min->SetMaxFunctionCalls(100000);
@@ -124,48 +142,48 @@ std::pair<double, std::vector<std::complex<double> > > logLikelihood::fitROOT(st
 		bestPar[a] = std::complex<double>(xs[2*a-2+skip], xs[2*a-1+skip]);
 	}
 	double retVal = eval(bestPar);
-/*
-	std::cout << "Calculating hessian" << std::endl;
-	min->Hesse();
-	std::cout << "Hessian calculated" << std::endl;
-	double* hessianValues = 0;
-	if (not min->GetHessianMatrix(hessianValues)) {
-		std::cout << "logLikelihood::fitROOT(...): ERROR: Could not get hessian values" << std::endl;
-		throw;
-	}
-	_hessian = std::vector<std::vector<double> >(2*nAmpl(), std::vector<double>(2*nAmpl(), 0.));
-	size_t nLineHessian = 2*_nAmpl;
-	if (_fixFirstPhase) {
-		nLineHessian -= 1;
-	}
-	_hessian[0][0] = hessianValues[0];
-	if (not _fixFirstPhase) {
-		_hessian[0][1] = hessianValues[1];
-		_hessian[1][0] = hessianValues[nLineHessian];
-		_hessian[1][1] = hessianValues[nLineHessian+1];
-	}
-	for (size_t a1 = 1; a1 < nAmpl(); ++a1) {
-		_hessian[0][2*a1  ] = hessianValues[2*a1  ];
-		_hessian[0][2*a1+1] = hessianValues[2*a1+1];
 
-		_hessian[2*a1  ][0] = hessianValues[(2*a1  )*nLineHessian];
-		_hessian[2*a1+1][0] = hessianValues[(2*a1+1)*nLineHessian];
-		if (not _fixFirstPhase) {
-			_hessian[1][2*a1  ] = hessianValues[2*a1   + nLineHessian];
-			_hessian[1][2*a1+1] = hessianValues[2*a1+1 + nLineHessian];
+//	std::cout << "Calculating hessian" << std::endl;
+//	min->Hesse();
+//	std::cout << "Hessian calculated" << std::endl;
+//	double* hessianValues = 0;
+//	if (not min->GetHessianMatrix(hessianValues)) {
+//		std::cout << "logLikelihood::fitROOT(...): ERROR: Could not get hessian values" << std::endl;
+//		throw;
+//	}
+//	_hessian = std::vector<std::vector<double> >(2*nAmpl(), std::vector<double>(2*nAmpl(), 0.));
+//	size_t nLineHessian = 2*_nAmpl;
+//	if (_fixFirstPhase) {
+//		nLineHessian -= 1;
+//	}
+//	_hessian[0][0] = hessianValues[0];
+//	if (not _fixFirstPhase) {
+//		_hessian[0][1] = hessianValues[1];
+//		_hessian[1][0] = hessianValues[nLineHessian];
+//		_hessian[1][1] = hessianValues[nLineHessian+1];
+//	}
+//	for (size_t a1 = 1; a1 < nAmpl(); ++a1) {
+//		_hessian[0][2*a1  ] = hessianValues[2*a1  ];
+//		_hessian[0][2*a1+1] = hessianValues[2*a1+1];
+//
+//		_hessian[2*a1  ][0] = hessianValues[(2*a1  )*nLineHessian];
+//		_hessian[2*a1+1][0] = hessianValues[(2*a1+1)*nLineHessian];
+//		if (not _fixFirstPhase) {
+//			_hessian[1][2*a1  ] = hessianValues[2*a1   + nLineHessian];
+//			_hessian[1][2*a1+1] = hessianValues[2*a1+1 + nLineHessian];
+//
+//			_hessian[2*a1  ][1] = hessianValues[1+(2*a1  )*nLineHessian];
+//			_hessian[2*a1+1][1] = hessianValues[1+(2*a1+1)*nLineHessian];
+//		}
+//		for (size_t a2 = 1; a2 < nAmpl(); ++a2) {
+//			std::cout << a1 << " " << a2 << " " << nAmpl() << std::endl;
+//			_hessian[2*a1  ][2*a2  ] = hessianValues[2*a1  +(2*a2  )*nLineHessian];
+//			_hessian[2*a1  ][2*a2+1] = hessianValues[2*a1  +(2*a2+1)*nLineHessian];
+//			_hessian[2*a1+1][2*a2  ] = hessianValues[2*a1+1+(2*a2  )*nLineHessian];
+//			_hessian[2*a1+1][2*a2+1] = hessianValues[2*a1+1+(2*a2+1)*nLineHessian];
+//		}
+//	}
 
-			_hessian[2*a1  ][1] = hessianValues[1+(2*a1  )*nLineHessian];
-			_hessian[2*a1+1][1] = hessianValues[1+(2*a1+1)*nLineHessian];
-		}
-		for (size_t a2 = 1; a2 < nAmpl(); ++a2) {
-			std::cout << a1 << " " << a2 << " " << nAmpl() << std::endl;
-			_hessian[2*a1  ][2*a2  ] = hessianValues[2*a1  +(2*a2  )*nLineHessian];
-			_hessian[2*a1  ][2*a2+1] = hessianValues[2*a1  +(2*a2+1)*nLineHessian];
-			_hessian[2*a1+1][2*a2  ] = hessianValues[2*a1+1+(2*a2  )*nLineHessian];
-			_hessian[2*a1+1][2*a2+1] = hessianValues[2*a1+1+(2*a2+1)*nLineHessian];
-		}
-	}
-*/
 	return std::pair<double, std::vector<std::complex<double> > >(retVal, bestPar);
 }
 
@@ -185,9 +203,41 @@ double logLikelihood::operator()(const double* parameters) const {
 	}
 	return eval(prodAmps);
 }
+*/
+
+logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes, std::shared_ptr<integrator> integral) :
+	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _amplitudes(amplitudes), _points() {
+	if (_amplitudes.size() == 0) {
+		std::cerr << "logLikelihood::logLikelihood(...): ERROR: No amplitudes given" << std::endl;
+		throw;
+	}	
+	_kinSignature = _amplitudes[0]->kinSignature();
+	if (not (*_kinSignature == *(integral->kinSignature()))) {
+		std::cerr << "logLikelihood::logLikelihood(...): ERROR: Kinematic signature of integral differs" << std::endl;
+		throw;
+	}
+	for (std::shared_ptr<amplitude> a : _amplitudes) {
+		if (not(*(a->kinSignature()) == *_kinSignature)) {
+			std::cerr << "logLikelihood::logLikelihood(...): ERROR: Amplitudes have different kinematic signatures" << std::endl;
+			throw;
+		}
+	}
+	for (size_t a = 0; a < _nAmpl; ++a) {
+		std::pair<bool, std::string> waveName =  _integral->getWaveName(a);
+		if (not waveName.first) {
+			std::cerr  << "logLikelihood::logLikelihood(...): ERROR: Could not get wave name from integral" << std::endl;
+			throw;
+		}
+		if (not (_amplitudes[a]->name() == waveName.second)) {
+			std::cerr  << "logLikelihood::logLikelihood(...): ERROR: wave names do not match" << std::endl;
+			throw;
+		}
+	}
+}
+
 
 double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
-	if (not prodAmps.size() == _nAmpl) {
+	if (prodAmps.size() != _nAmpl) {
 		std::cerr << "logLikelihood::eval(...): ERROR: Number of production amplitudes does not match" << std::endl;
 		throw; // Throw here, since a ll = 0. could confuse the program
 	}
@@ -200,17 +250,21 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 		}
 		ll += log(norm(ampl));
 	}
-	ll -= _integral->totalIntensity(prodAmps);
+	if (_extended) {
+		ll -= _integral->totalIntensity(prodAmps);
+	} else {
+		ll -= log(_integral->totalIntensity(prodAmps))*(double)_nPoints;
+	}
 	++_nCalls;
 	if (_nCalls%_nCallsPrint == 0) {
 		std::cout << "call #" << _nCalls << " like " << -ll << std::endl;
-	}	
+	}
 	return -ll;
 }
 
 std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& prodAmps) const {
-	if (not prodAmps.size() == _nAmpl) {
-		std::cerr << "logLikelihood::eval(...): ERROR: Number of production amplitudes does not match" << std::endl;
+	if (prodAmps.size() != _nAmpl) {
+		std::cerr << "logLikelihood::Deval(...): ERROR: Number of production amplitudes does not match" << std::endl;
 		throw; // Throw here, since a ll = 0. could confuse the program
 	}
 	std::vector<double> retVal(2*_nAmpl, 0.);
@@ -228,15 +282,22 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 		}
 	}
 	std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps);
-	for (size_t a = 0; a < 2*_nAmpl; ++a) {
-		retVal[a] += Dintegral[a];
+	if (_extended) {
+		for (size_t a = 0; a < 2*_nAmpl; ++a) {
+			retVal[a] += Dintegral[a];
+		}
+	} else {
+		double totalIntens = _integral->totalIntensity(prodAmps);
+		for (size_t a = 0; a< 2*_nAmpl; ++a) {
+			retVal[a] += Dintegral[a]/totalIntens*(double)_nPoints;
+		}
 	}
 	return retVal;
 }
 
 std::vector<std::vector<double> > logLikelihood::DDeval(std::vector<std::complex<double> >& prodAmps) const {
-	if (not prodAmps.size() == _nAmpl) {
-		std::cerr << "logLikelihood::eval(...): ERROR: Number of production amplitudes does not match" << std::endl;
+	if (prodAmps.size() != _nAmpl) {
+		std::cerr << "logLikelihood::DDeval(...): ERROR: Number of production amplitudes does not match" << std::endl;
 		throw; // Throw here, since a ll = 0. could confuse the program
 	}
 	std::vector<std::vector<double> > retVal(2*_nAmpl, std::vector<double> (2*_nAmpl, 0.));
@@ -266,56 +327,27 @@ std::vector<std::vector<double> > logLikelihood::DDeval(std::vector<std::complex
 		}
 	}
 	std::vector<std::vector<double> > DDintegral = _integral->DDtotalIntensity(prodAmps);
-	for (size_t i = 0; i < 2*_nAmpl; ++i) {
-		for (size_t j = 0; j < 2*_nAmpl; ++j) {
-			retVal[i][j] += DDintegral[i][j];
+	if (_extended) {
+		for (size_t i = 0; i < 2*_nAmpl; ++i) {
+			for (size_t j = 0; j < 2*_nAmpl; ++j) {
+				retVal[i][j] += DDintegral[i][j];
+			}
 		}
-	}
-	return retVal;
-}
-
-double logLikelihood::nloptCall(const std::vector<double> &x, std::vector<double> &grad) const {
-	if (not x.size() == getNpar()) {
-		std::cerr << "logLikelihood::nloptCall(...): ERROR: Nomber of amplitudes does not match" << std::endl;
-		throw;
-	}
-	std::vector<std::complex<double> > prodAmps(_nAmpl);
-	size_t skip = 0;
-	if (_fixFirstPhase) {
-		prodAmps[0] = std::complex<double>(x[0], 0.);
-		skip = 1;
 	} else {
-		prodAmps[0] = std::complex<double>(x[0], x[1]);
-		skip = 2;
-	}
-	for (size_t a = 1; a < _nAmpl; ++a) {
-		prodAmps[a] = std::complex<double>(x[2*a-2+skip],x[2*a-1+skip]);
-	}
-	if (grad.size() > 0) {
-		std::vector<double> diff = Deval(prodAmps);
-		grad[0] = diff[0];
-		if (not _fixFirstPhase) { // Skip is already set accordingly
-			grad[1] = diff[1];
+		double totalIntens = _integral->totalIntensity(prodAmps);
+		std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps);
+		for (size_t i = 0; i < 2*_nAmpl; ++i) {
+			for (size_t j = 0; j < 2*_nAmpl; ++j) {
+				retVal[i][j] += (DDintegral[i][j]/totalIntens - Dintegral[i]*Dintegral[j]/totalIntens/totalIntens)*(double)_nPoints;
+			}
 		}
-		for (size_t a = 1; a < _nAmpl; ++a) {
-			grad[2*a-2+skip] = diff[2*a  ];
-			grad[2*a-1+skip] = diff[2*a+1];
-		}
-	}
-	return eval(prodAmps);
-}
-
-size_t logLikelihood::getNpar() const {
-	size_t retVal = 2*_nAmpl;
-	if (_fixFirstPhase) {
-		retVal -= 1;
 	}
 	return retVal;
 }
 
 bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& dataPoints) {
 	if (dataPoints.size() == 0) {
-		std::cerr << "logLikelihood::addDataPoints(...): ERROR: Not data points given" << std::endl;
+		std::cerr << "logLikelihood::loadDataPoints(...): ERROR: Not data points given" << std::endl;
 		return false;
 	}
 	_nPoints = dataPoints.size();
@@ -323,7 +355,7 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 	for(size_t a = 0; a < _nAmpl; ++a) {
 		std::pair<bool, std::complex<double> > diag = _integral->element(a,a);
 		if (not diag.first) {
-			std::cerr << "logLikelihood::addDataPoints(...): ERROR: Could not get diagonal integral" << std::endl;
+			std::cerr << "logLikelihood::loadDataPoints(...): ERROR: Could not get diagonal integral" << std::endl;
 			return false;
 		}
 		double norm = 0.;
@@ -337,4 +369,110 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 	return true;
 }
 
+logLikelihoodAllFree::logLikelihoodAllFree (std::vector<double> binning, std::vector<std::shared_ptr<angularDependence> > freedAmplitudes, std::shared_ptr<integrator> integral) :
+	logLikelihoodBase ((binning.size()-1)*freedAmplitudes.size(), integral->kinSignature(), integral), 
+	_nBins(binning.size()-1), 
+	_binning(binning), 
+	_eventsPerBin(std::vector<std::vector<size_t> >(binning.size()-1, std::vector<size_t>(binning.size() - 1, 0))),
+	_amplitudesInBin(std::vector<std::vector<std::vector<std::complex<double> > > >(binning.size()-1, 
+	                 std::vector<std::vector<std::complex<double> > >(binning.size()-1, 
+	                 std::vector<std::complex<double> >(freedAmplitudes.size(), 
+	                 std::complex<double>(0.,0.))))) {
+	for (size_t b = 0; b < _nBins; ++b) {
+		if (_binning[b+1] <= _binning[b]) {
+			std::cout << "logLikelihoodAllFree::logLikelihoodAllFree(...): ERROR: Binning not ordered" << std::endl;
+			throw;
+		}
+	}
+	if (not _kinSignature->nKin() == 3) {
+		std::cout << "Number of kinemtaic variables is not three... unknown prcess... Abortring..." << std::endl;
+		throw;
+	}
+}
 
+double logLikelihoodAllFree::eval(std::vector<std::complex<double> >& prodAmps) const {
+	std::cout << "logLikelihoodAllFree::eval(...): NOT IMPLEMENTED " << prodAmps.size() << std::endl;
+	throw;
+	return 0;
+}
+
+std::vector<double> logLikelihoodAllFree::Deval(std::vector<std::complex<double> >& prodAmps) const {
+	std::cout << "logLikelihoodAllFree::Deval(...): NOT IMPLEMENTED " << prodAmps.size() << std::endl;
+	throw;
+	std::vector<double>();
+}
+
+std::vector<std::vector<double> >  logLikelihoodAllFree::DDeval(std::vector<std::complex<double> >& prodAmps) const {
+	std::cout << "logLikelihoodAllFree::DDeval(...): NOT IMPLEMENTED " << prodAmps.size() << std::endl;
+	throw;
+	std::vector<std::vector<double> >();
+}
+
+bool logLikelihoodAllFree::loadDataPoints(const std::vector<std::vector<double> >& dataPoints) {
+	if (dataPoints.size() == 0) {
+		std::cerr << "logLikelihood::loadDataPoints(...): ERROR: Not data points given" << std::endl;
+		return false;
+	}
+	const double s = dataPoints[0][0];
+	_nPoints = dataPoints.size();
+	std::vector<std::vector<std::pair<double, double> > > averageMasses(_nBins, std::vector<std::pair<double, double> >(_nBins, std::pair<double, double>(0.,0.)));
+	for (const std::vector<double>& point : dataPoints) {
+		std::pair<bool, std::pair<size_t, size_t> > bin = findBin(point);
+		if (not bin.first) {
+			std::cout << "logLikelihood::loadDataPoints(...): ERROR: Bin not found" << std::endl;
+			return false;
+		}
+		_eventsPerBin[bin.second.first][bin.second.second] += 1;
+		averageMasses[bin.second.first][bin.second.second].first  += point[1];
+		averageMasses[bin.second.first][bin.second.second].second += point[2];
+	}
+	for (size_t b1 = 0; b1 < _nBins; ++b1) {
+		for (size_t b2 = 0; b2 < _nBins; ++b2) {
+			size_t nBin = _eventsPerBin[b1][b2];
+			if (nBin == 0) {
+				continue;
+			}
+			std::vector<double> binPoint = {s, averageMasses[b1][b2].first/nBin, averageMasses[b1][b2].second/nBin};
+			std::cout << "logLikelihood::loadDataPoints(...): NOT IMPLEMENTED: Not fully implemented" << std::endl;
+			throw;
+		}
+	}
+	return true;
+}	
+
+std::pair<bool, std::pair<size_t, size_t> > logLikelihoodAllFree::findBin(const std::vector<double>& point) const {
+	bool found1 = false;
+	size_t bin1 = 0;
+	bool found2 = false;
+	size_t bin2 = 0;
+	if (not point.size() == _kinSignature->nKin()) {
+		std::cout << "logLikelihoodAllFree::findBin(...): Number of kinematic variables does not match" << std::endl;
+		return std::pair<bool, std::pair<size_t, size_t> >(false, std::pair<size_t, size_t>(0,0));
+	}
+	const double s12 = point[1];
+	const double s13 = point[2];
+	for (size_t b = 0; b < _nBins; ++b) {
+		const double sMin = _binning[b];
+		const double sMax = _binning[b+1];
+		if (sMin < s12 and s12 <= sMax) {
+			if (found1) {
+				std::cout << "Two bins found for s_{12}... Returning false" << std::endl;
+				return  std::pair<bool, std::pair<size_t, size_t> >(false, std::pair<size_t, size_t>(0,0));
+			}
+			found1 = true;
+			bin1   = b;
+		}
+		if (sMin < s13 and s13 <= sMax) {
+			if (found2) {
+				std::cout << "Two bins found for s_{13}... Returning false" << std::endl;
+				return  std::pair<bool, std::pair<size_t, size_t> >(false, std::pair<size_t, size_t>(0,0));
+			}
+			found2 = true;
+			bin2   = b;
+		}
+		if (found1 and found2) { // This breaks the total check of the binnig, i.e. if a secod bin would be found, but ordering is checked in the constuctor anyway...
+			break;
+		}
+	}
+	return std::pair<bool, std::pair<size_t, size_t> >(found1 and found2, std::pair<size_t, size_t>(bin1, bin2));
+}

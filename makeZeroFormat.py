@@ -19,7 +19,6 @@ def loadBinning(inFileName):
 			binning += [float(chunk)**.5 for chunk in line.split()]
 	return np.asarray(binning)
 
-
 def loadRealMatrixFile(fileName):
 	matrix = []
 	with open(fileName, 'r') as inin:
@@ -28,12 +27,25 @@ def loadRealMatrixFile(fileName):
 			matrix.append(vals)
 	return np.asarray(matrix)
 
-def loadAmplitudeFile(fileName):
+def loadAmplitudeFile(fileName, conjugate = False):
 	ampls = []
 	with open(fileName, 'r') as inin:
 		for line in inin.readlines():
-			ampls.append(toComplex(line.strip()))
+			aa = toComplex(line.strip())
+			if conjugate:
+				ampls.append(aa.conjugate())
+			else:
+				ampls.append(aa)
 	return np.asarray(ampls, dtype = complex)
+
+def loadN():
+	ns = []
+	with open('./build/nDp.dat') as inin:
+		for line in inin.readlines():
+			ns += [int(v) for v in line.split()]
+	if not len(ns) == 3:
+		raise ValueError("Number of values does not match")
+	return ns[0], ns[1], ns[2]
 
 def projectOutPhaseDirection(matrix, amplitudes):
 	phaseDirection = []
@@ -53,62 +65,136 @@ def projectOutPhaseDirection(matrix, amplitudes):
 			projector[i,j] -= phaseDirection[i] * phaseDirection[j]
 	return np.dot(projector, np.dot(matrix, projector))			
 
+def removeIndex(n, ampls, hessian):
+	dim       = len(ampls)
+	amplsNew  = []
+	matrixNew = []
+	for i in range(dim):
+		if i == n:
+			continue
+		amplsNew.append(ampls[i])
+		line1 = []
+		line2 = []
+		for j in range(dim):
+			if j == n:
+				continue
+			line1.append(hessian[2*i  ,2*j  ])
+			line1.append(hessian[2*i  ,2*j+1])
+			line2.append(hessian[2*i+1,2*j  ])
+			line2.append(hessian[2*i+1,2*j+1])
+		matrixNew.append(line1)
+		matrixNew.append(line2)
+	return np.asarray(amplsNew, dtype = complex), np.asarray(matrixNew)
 
 def main():
-	bin          = 34
-	amplFileName = "./build/amplitudes.dat"
-	hessFileName = "./build/hessian.dat"
-	inteFileName = "./build/integral.dat"
-	binFfileName = "./build/binningF0.dat"
-	binRfileName = "./build/binningRho.dat"
+	nF0, nRho, nF2 = loadN()
 
-	binningF0  = loadBinning(binFfileName)
-	binningRho = loadBinning(binRfileName)
+	bin            = 34
+	amplFileName   = "./build/amplitudes.dat"
+	hessFileName   = "./build/hessian.dat"
+	inteFileName   = "./build/integral.dat"
+	binFfileName   = "./build/binningF0.dat"
+	binRfileName   = "./build/binningRho.dat"
+	binF2fileName  = "./build/binningF2.dat"
 
-	nBins = len(binningF0) + len(binningRho) - 2
+	conjugate      = True
 
-	sectors = {"D0[pi,pi]0++PiS" : (0,len(binningF0)-1), "D0[pi,pi]1--PiP":(len(binningF0)-1,len(binningF0)+len(binningRho)-2)}
+	binningF0      = loadBinning(binFfileName)
+	binningRho     = loadBinning(binRfileName)
+	binningF2      = loadBinning(binF2fileName)
 
+	nBins          = 0
+	eigenString    = ""
+	sectors        = {}
+	if nF2 > 1:
+		dnb = len(binningF2)-1
+		sectors["Dp[pi,pi]2++PiD"] = (nBins, nBins+dnb)
+		nBins += dnb
+		eigenString += "Dp[pi,pi]2++PiD"
+	if nF0 > 1:
+		dnb = len(binningF0)-1
+		sectors["Dp[pi,pi]0++PiS"] = (nBins, nBins+dnb)
+		nBins += dnb
+		if len(eigenString) > 0:
+			eigenString += "<|>"
+		eigenString += "Dp[pi,pi]0++PiS"
+	if nRho > 1:
+		dnb = len(binningRho)-1
+		sectors["Dp[pi,pi]1--PiP"] = (nBins, nBins+dnb)
+		nBins += dnb		
+		if len(eigenString) > 0:
+			eigenString += "<|>"
+		eigenString += "Dp[pi,pi]1--PiP"
+
+	print nF0,nRho,nF2,nBins
+
+	ampl    = loadAmplitudeFile(amplFileName, conjugate)
 	hessian = loadRealMatrixFile(hessFileName)
-	ampl    = loadAmplitudeFile(amplFileName)
+	inte    = integral(inteFileName)
 
-	inte = integral(inteFileName)
-	inte.removeIndices(0)
+	if nRho == 1: # Remove fixed waves from the integral matrix
+		inte.removeIndices(nF0 + nF2)
+		ampl, hessian = removeIndex(nF0 + nF2, ampl, hessian)
+	if nF0 == 1:
+		inte.removeIndices(nF2)
+		ampl, hessian = removeIndex(nF2, ampl, hessian)
+	if nF2 == 1:
+		inte.removeIndices(0)
+		ampl, hessian = removeIndex(0, ampl, hessian)
+
 	inte.norm()
 	inte.eigen()
-	norm     = inte.norms
-	sev = inte.getSmallVectors(0.005)
-	zeroMode = sev[0]
-	
+	norm = inte.norms
+
+	svals, sev = inte.getSmallVectors(0.005)
+
+	hasZeroMode = False
+	if len(sev) > 0:
+		hasZeroMode = True
+	else:
+		print "No zero-mode found"
 
 	comaName = "COMA_0_"+str(bin)
 #	COMA     = la.inv(hessian)
-	COMA     = utils.pinv(hessian)
+	COMA     = utils.pinv(hessian, 1.e-4)
+	if conjugate:
+		for i in range(2*nBins):	
+			for j in range(2*nBins):
+				iNdex = i
+				jNdex = j
+				sign  = (-1)**(iNdex + jNdex)
+				COMA[iNdex, jNdex] *= sign
+
 	COMA     = projectOutPhaseDirection(COMA, ampl)
 
-	with root_open("D0PiPiPi.root", "RECREATE") as outFile:
+	with root_open("DpPiPiPi.root", "RECREATE") as outFile:
 		COMAhist = pyRootPwa.ROOT.TH2D(comaName, comaName, 2*nBins, 0.,1., 2*nBins, 0.,1.)
 		for i in range(2*nBins):
 #			COMAhist.SetBinContent(i+1, i+1, 1.) # first two are fixed isobar
 			for j in range(2*nBins):
-				COMAhist.SetBinContent(i+1, j+1, COMA[i+2, j+2]) # first two are fixed isobar
+				iNdex = i
+				jNdex = j
+				COMAhist.SetBinContent(i+1, j+1, COMA[iNdex, jNdex]) # first two are fixed isobar
 				pass
 		COMAhist.Write()
 
-		eigenHist = pyRootPwa.ROOT.TH1D("eigen0_0", "D0[pi,pi]0++PiS<|>D0[pi,pi]1--PiP", 50, .5 , 2.5)
-		eigenHist.SetBinContent(bin+1, 0.000908109182548)
-		eigenHist.Write()
-
-		zeroHist = pyRootPwa.ROOT.TH2D("zero0_0","D0[pi,pi]0++PiS<|>D0[pi,pi]1--PiP", 50, .5 , 2.5, nBins, 0.,1.)
-		for i in range(nBins):
-			zeroHist.SetBinContent(bin+1, i+1, zeroMode[i].real)
-		zeroHist.Write()
+		for i, zeroMode in enumerate(sev):
+			eigenHist = pyRootPwa.ROOT.TH1D("eigen"+str(i)+"_0", eigenString, 50, .5 , 2.5)
+			eigenHist.SetBinContent(bin+1, svals[i])
+			eigenHist.Write()
+	
+			zeroHist = pyRootPwa.ROOT.TH2D("zero"+str(i)+"_0", eigenString, 50, .5 , 2.5, nBins, 0.,1.)
+			for i in range(nBins):
+				zeroHist.SetBinContent(bin+1, i+1, zeroMode[i].real)
+			zeroHist.Write()
 
 		for sector in sectors:
 			if "1--" in sector:
 				isobarBinning = binningRho
 			elif "0++" in sector:
 				isobarBinning = binningF0
+			elif "2++" in sector:
+				isobarBinning = binningF2
 			else:
 				"Sector not valid: '"+sector+"'"
 			histIntens = pyRootPwa.ROOT.TH2D(sector+"_0_intens", sector+"_0_intens", len(binning3Pi)-1, binning3Pi, len(isobarBinning)-1, isobarBinning)
@@ -117,9 +203,9 @@ def main():
 			histNorm   = pyRootPwa.ROOT.TH2D(sector+"_0_norm"  , sector+"_0_norm"  , len(binning3Pi)-1, binning3Pi, len(isobarBinning)-1, isobarBinning)
 			histIndex  = pyRootPwa.ROOT.TH2D(sector+"_0_index" , sector+"_0_index" , len(binning3Pi)-1, binning3Pi, len(isobarBinning)-1, isobarBinning)
 			for b,B in enumerate(range(sectors[sector][0],sectors[sector][1])):
-				histIntens.SetBinContent(bin+1, b+1, abs(ampl[B+1])**2)
-				histReal.SetBinContent(  bin+1, b+1, ampl[B+1].real)
-				histImag.SetBinContent(  bin+1, b+1, ampl[B+1].imag)
+				histIntens.SetBinContent(bin+1, b+1, abs(ampl[B])**2)
+				histReal.SetBinContent(  bin+1, b+1, ampl[B].real)
+				histImag.SetBinContent(  bin+1, b+1, ampl[B].imag)
 				histNorm.SetBinContent(  bin+1, b+1, norm[B])
 				histIndex.SetBinContent( bin+1, b+1, B)
 			histIntens.Write()

@@ -46,4 +46,41 @@ class sameMassTwoD : public angularDependence {
 	private:
 		double _fsMass;
 };
+
+class sameMassZeroSnonRelativistic : public angularDependence {
+	public:
+		sameMassZeroSnonRelativistic (double fsMass);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	private:
+		double _fsMass;
+};
+
+class sameMassOnePnonRelativistic : public angularDependence {
+	public:
+		sameMassOnePnonRelativistic (double fsMass);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	private:
+		double _fsMass;
+};
+
+class sameMassTwoDnonRelativistic : public angularDependence {
+	public:
+		sameMassTwoDnonRelativistic (double fsMass);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	private:
+		double _fsMass;
+};
+
+class ratioOfDependences : public angularDependence {
+	public:
+		ratioOfDependences (std::shared_ptr<angularDependence> numerator, std::shared_ptr<angularDependence> denominator);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	private:
+		std::shared_ptr<angularDependence> _numerator;
+		std::shared_ptr<angularDependence> _denominator;
+};
 #endif// ANGULARDEPENDENCE__

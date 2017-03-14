@@ -51,7 +51,6 @@ class integral:
 				newMatrix[i,j] = self.integralMatrix[I,J]
 		self.integralMatrix = newMatrix
 
-
 	def eigen(self):
 		self.wasNormalized = self.normalized
 		val, self.vec = la.eig(self.integralMatrix)
@@ -67,14 +66,16 @@ class integral:
 		if not self.hasEigen:
 			raise RuntimeError("Eigensystem not calculated")
 		vectors = []
+		vals    = []
 		for i in range(self.nAmpl):
 			if self.val[i] < maxVal and not self.val[i] == 0.:
 				vec = np.zeros((self.nAmpl), dtype = complex)
 				print self.val[i]
+				vals.append(self.val[i])
 				for j in range(self.nAmpl):
 					vec[j] = self.vec[j,i]
 				vectors.append(vec)
-		return vectors
+		return vals, vectors
 
 	def norm(self):
 		if self.normalized:

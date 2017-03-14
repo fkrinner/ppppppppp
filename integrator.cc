@@ -18,7 +18,7 @@ integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGe
 		std::cerr << "integrator::integrator(...): ERROR: Kinematic signatures in amplitudes and generator differ" << std::endl;
 		throw;
 	}
-};
+}
 
 bool integrator::integrate() {
 	_integralMatrix = std::vector<std::vector<std::complex<double> > > (nAmpl(), std::vector<std::complex<double> > (nAmpl(), std::complex<double>(0.,0.)));
