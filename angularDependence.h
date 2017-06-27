@@ -74,6 +74,28 @@ class sameMassTwoDnonRelativistic : public angularDependence {
 		double _fsMass;
 };
 
+class arbitraryMass_S_nonRelativistic : public angularDependence {
+	public:
+		arbitraryMass_S_nonRelativistic(size_t isobarIndex, std::vector<double> fsMasses);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+
+	private:
+		size_t              _isobarIndex;
+		std::vector<double> _fsMasses;
+};
+
+class arbitraryMass_P_nonRelativistic : public angularDependence {
+	public:
+		arbitraryMass_P_nonRelativistic(size_t isobarIndex, std::vector<double> fsMasses);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+
+	private:
+		size_t              _isobarIndex;
+		std::vector<double> _fsMasses;
+};
+
 class ratioOfDependences : public angularDependence {
 	public:
 		ratioOfDependences (std::shared_ptr<angularDependence> numerator, std::shared_ptr<angularDependence> denominator);

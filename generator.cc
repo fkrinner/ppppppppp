@@ -8,13 +8,13 @@ std::vector<double> generator::generate() const {
 	return std::vector<double>();
 }
 
-threeParticleMassGenerator::threeParticleMassGenerator(double initialMass, const std::vector<double>& fsMasses):
+threeParticleMassGenerator::threeParticleMassGenerator(double initialMass, const std::vector<double>& fsMasses, std::shared_ptr<kinematicSignature> kinSig):
 	generator(), _initialMass(initialMass), _fsMasses(fsMasses) {
 		if (_fsMasses.size() != 3) {
 			std::cerr << "threeParticleMassGenerator::threeParticleMassGenerator(...): Not three fsMasses given: " << _fsMasses.size() << std::endl;
 			throw;
 		}
-		_kinSignature = std::make_shared<kinematicSignature>(1);
+		_kinSignature = kinSig;
 }
 
 double s3v(const std::vector<double>& v) {
@@ -23,8 +23,6 @@ double s3v(const std::vector<double>& v) {
 	retVal -= v[2]*v[2];
 	return retVal;
 }
-
-
 
 bool threeParticleMassGenerator::isValidPoint(const std::vector<double>& kin) const {
 	const double s   = kin[0];
@@ -111,5 +109,4 @@ std::vector<double> threeParticleMassGenerator::generate() const {
 		}
 	}
 	return retVal;
-
 }

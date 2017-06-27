@@ -48,3 +48,44 @@ std::complex<double> threeParticleIsobaricAmplitude::eval(const std::vector<doub
 	}
 	return retVal;
 }
+
+threeParticlaIsobaricAmplitudeNoBose::threeParticlaIsobaricAmplitudeNoBose(size_t isobarIndex, std::string name, std::shared_ptr<massShape> shape, std::shared_ptr<angularDependence> angDep, std::vector<double> fsMasses):
+	amplitude(angDep->kinSignature(), name), _isobarIndex(isobarIndex), _sumFSmasses(0.),  _massShape(shape), _angDep(angDep) {
+	
+	if (fsMasses.size() != 3) {
+		std::cout << "threeParticlaIsobaricAmplitudeNoBose::threeParticlaIsobaricAmplitudeNoBose(...): ERROR: Number of final state masses differs from three" << std::endl;
+		throw;
+	}
+	for (double& fsMass : fsMasses) {
+		_sumFSmasses += fsMass*fsMass;
+	}
+	if (isobarIndex != 12 and isobarIndex != 13 and isobarIndex != 23) {
+		std::cout <<  "threeParticlaIsobaricAmplitudeNoBose::threeParticlaIsobaricAmplitudeNoBose(...): ERROR: None of the three possible isobar masses match (12, 13 and 23) the given value:" << isobarIndex << std::endl;
+		throw;
+	}
+}
+
+std::complex<double> threeParticlaIsobaricAmplitudeNoBose::eval(const std::vector<double>& kin) const {
+	std::complex<double> retVal = _angDep->eval(kin);
+	if (_isobarIndex == 12) {
+
+	}
+	double mIsob = 0.;
+	if (_isobarIndex == 12) {
+		mIsob = kin[1];
+	} else if (_isobarIndex == 13) {
+		mIsob = kin[2];
+	} else if (_isobarIndex == 23) {
+		mIsob = kin[0] + _sumFSmasses - kin[1] - kin[2];
+	} else {
+		std::cout << "threeParticlaIsobaricAmplitudeNoBose::eval(...): ERROR: Invalid isobarIndex: " << _isobarIndex << ". Returning 0" << std::endl;
+		return std::complex<double>(0.,0.);
+	} 
+	retVal *= _massShape->eval(mIsob);
+	return retVal;
+}
+
+
+
+
+

@@ -15,8 +15,9 @@
 #include"logLikelihood.h"
 
 int main() {
-//	size_t seed = size_t( time(NULL) );
-	size_t seed = 13041988 + 13434;
+	size_t seed = size_t( time(NULL) );
+	std::cout << "Seed: " << seed << std::endl;
+//	size_t seed = 13041988 + 13434 + 1;
 	srand(seed);
 //	utils::opening();
 
@@ -24,8 +25,8 @@ int main() {
 //	const double mD0 = 1.86484;
 	const double mDp = 1.8696200;
 
-	const size_t nTries         = 20;
-	const size_t nPoints        = 100000;
+	const size_t nTries         = 10;
+	const size_t nPoints        = 1000000;
 	const size_t integralPoints = 1000000;
 
 	const bool bose             = true;
@@ -36,11 +37,11 @@ int main() {
 
 	const bool useF0   = true;
 	const bool useRho  = true;
-	const bool useF2   = false;
+	const bool useF2   = true;
 
 	const bool freeF0  = true;
 	const bool freeRho = true;
-	const bool freeF2  = true;
+	const bool freeF2  = false;
 
 	std::ofstream outFile;
 
@@ -50,6 +51,7 @@ int main() {
 	std::shared_ptr<constant> cnst = std::make_shared<constant>();
 
 	std::shared_ptr<simpleBW> f0  = std::make_shared<simpleBW>( .98, .1 );
+//	std::shared_ptr<simpleBW> f0  = std::make_shared<simpleBW>(1.4 , .1 );
 	std::shared_ptr<simpleBW> rho = std::make_shared<simpleBW>( .77, .16);
 	std::shared_ptr<simpleBW> f2  = std::make_shared<simpleBW>(1.27, .2 );
 
@@ -68,9 +70,9 @@ int main() {
 	std::shared_ptr<ratioOfDependences> ratioP = std::make_shared<ratioOfDependences>(Pangle, PangleNR);
 	std::shared_ptr<ratioOfDependences> ratioD = std::make_shared<ratioOfDependences>(Dangle, DangleNR);
 
-	std::shared_ptr<threeParticleIsobaricAmplitude> Swave = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp0ppPiS", f0,  Sangle);
-	std::shared_ptr<threeParticleIsobaricAmplitude> Pwave = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp1mmPiP", rho, Pangle);
-	std::shared_ptr<threeParticleIsobaricAmplitude> Dwave = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp2ppPiP", f2,  Dangle);
+	std::shared_ptr<threeParticleIsobaricAmplitude> Swave = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp0ppPiS", f0,  SangleNR);
+	std::shared_ptr<threeParticleIsobaricAmplitude> Pwave = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp1mmPiP", rho, PangleNR);
+	std::shared_ptr<threeParticleIsobaricAmplitude> Dwave = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp2ppPiP", f2,  DangleNR);
 
 	std::shared_ptr<threeParticleIsobaricAmplitude> Szero = std::make_shared<threeParticleIsobaricAmplitude>(bose, "Szero", zero0pp, Sangle);
 	std::shared_ptr<threeParticleIsobaricAmplitude> Pzero = std::make_shared<threeParticleIsobaricAmplitude>(bose, "Pzero", zero1mm, Pangle);
@@ -131,6 +133,12 @@ int main() {
 		outFile.close();
 	}
 
+	const double width = .02;
+	
+	std::vector<double> binning = {.278, .3, .3 + width};
+	while (binning[binning.size()-1] < 1.760) {
+		binning.push_back(binning[binning.size()-1] + width);
+	}
 
 	std::vector<double> binningF0 = { .278,  .320,  .360,  .400,  .440,  .480,  .520,  .560,  .600,
                              .640,  .680,  .720,  .760,  .800,  .840,  .880,  .920,  .930,
@@ -138,6 +146,8 @@ int main() {
                             1.030, 1.040, 1.050, 1.060, 1.070, 1.080, 1.120, 1.160,
                             1.200, 1.240, 1.280, 1.320, 1.360, 1.400, 1.440, 1.480,
                             1.520, 1.560, 1.600, 1.640, 1.680, 1.720, 1.760};
+
+//	binningF0 = binning;
 
 	for (size_t i = 0; i< binningF0.size(); ++i) {
 		binningF0[i] = binningF0[i]*binningF0[i];
@@ -147,6 +157,9 @@ int main() {
                              0.74, 0.76, 0.78, 0.8,  0.82, 0.84, 0.86, 0.88, 0.9,  0.92, 0.96, 1.0,  1.04,
                              1.08, 1.12, 1.16, 1.2,  1.24, 1.28, 1.32, 1.36, 1.4,  1.44, 1.48, 1.52, 1.56,
                              1.6,  1.64, 1.68, 1.72, 1.76};
+
+//	binningRho = binning;
+
 	for (size_t i = 0; i< binningRho.size(); ++i) {
 		binningRho[i] = binningRho[i]*binningRho[i];
 	}
@@ -155,6 +168,8 @@ int main() {
 					0.72, 0.76, 0.8,  0.84, 0.88, 0.92, 0.96, 1.0,  1.04, 1.08, 1.12, 
 					1.16, 1.18, 1.2,  1.22, 1.24, 1.26, 1.28, 1.30, 1.32, 1.34, 1.36, 
 					1.38, 1.4,  1.44, 1.48, 1.52, 1.56, 1.6,  1.64, 1.68, 1.72, 1.76 };
+
+//	binningF2 = binning;
 	for (size_t i = 0; i < binningF2.size(); ++i) {
 		binningF2[i] = binningF2[i]*binningF2[i];
 	}
@@ -216,12 +231,13 @@ int main() {
 	std::shared_ptr<integrator> integralFit                = integral;
 
 	if (freedIsobar) {
+//		amplitudesFit = {Swave, Pwave};
 		amplitudesFit = {};
 		if (useF2) {
 			if (freeF2) {
 				for (size_t b = 0; b < binningF2.size() - 1; ++b) {
 					std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningF2[b], binningF2[b+1]);
-					std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(bose, std::string("0mp2pp[") + std::to_string(b) + std::string("]PiD"), step, Dangle);
+					std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(bose, std::string("0mp2pp[") + std::to_string(b) + std::string("]PiD"), step, DangleNR);
 					amplitudesFit.push_back(stepWave);
 				}
 			} else {
@@ -232,7 +248,7 @@ int main() {
 			if (freeF0) {
 				for (size_t b = 0; b < binningF0.size() - 1; ++b) {
 					std::shared_ptr<stepLike> step  = std::make_shared<stepLike>(binningF0[b],binningF0[b+1]);
-					std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(bose, std::string("0mp0pp[") + std::to_string(b) + std::string("]PiS"), step, Sangle);	
+					std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(bose, std::string("0mp0pp[") + std::to_string(b) + std::string("]PiS"), step, SangleNR);	
 					amplitudesFit.push_back(stepWave);
 				}
 			} else {
@@ -243,7 +259,7 @@ int main() {
 			if (freeRho) {
 				for (size_t b = 0; b < binningRho.size() - 1; ++b) {
 					std::shared_ptr<stepLike> step  = std::make_shared<stepLike>(binningRho[b],binningRho[b+1]);
-					std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(bose, std::string("0mp1mm[") + std::to_string(b) + std::string("]PiP"), step, Pangle);	
+					std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(bose, std::string("0mp1mm[") + std::to_string(b) + std::string("]PiP"), step, PangleNR);	
 					amplitudesFit.push_back(stepWave);
 				}
 			} else { 
@@ -256,9 +272,12 @@ int main() {
 		std::cout << "Finished integration 2" << std::endl;
 	}
 
+
+
 	logLikelihood ll(amplitudesFit, integralFit);
 	integralFit->writeToFile("./integral.dat");
-
+//	std::cout << "artificial stopping point after writing of the integrals" << std::endl;
+//	return 0;
 	ll.setFixFirstPhase(true);
 	std::cout << "Start loading data points" << std::endl;
 	ll.loadDataPoints(generatedPoints);
@@ -325,7 +344,8 @@ int main() {
 	std::cout << "The best likelihood is " << bestLike << std::endl;
 	std::vector<std::vector<double> > hessian = ll.DDeval(bestVals);
 
-	outFile.open("./hessian.dat");
+	std::string outFileName = std::string("./hessian_") + std::to_string(seed) + std::string(".dat");
+	outFile.open(outFileName.c_str());
 	for (size_t i = 0; i < 2*ll.nAmpl(); ++i) {
 		for (size_t j = 0; j < 2*ll.nAmpl(); ++j) {
 			outFile << hessian[i][j] << " ";
@@ -335,19 +355,25 @@ int main() {
 	outFile.close();
 
 	if (freedIsobar) {
-		outFile.open("./amplitudes.dat");
+		outFileName = std::string("./amplitudes_") + std::to_string(seed) + std::string(".dat");
+		outFile.open(outFileName.c_str());
 		for (size_t a = 0; a < ll.nAmpl(); ++a) {
 			std::complex<double> amp = bestVals[a];
 			outFile << amp << std::endl;
 		}
 		outFile.close();
-		outFile.open("./amplitudes.gnu");
+		outFileName = std::string("./amplitudes_") + std::to_string(seed) + std::string(".gnu");
+		outFile.open(outFileName.c_str());
 		for (size_t a = 0; a < ll.nAmpl(); ++a) {
 			std::complex<double> amp = bestVals[a];
 			outFile << a << " " << norm(amp) << " " << amp.real() << " " << amp.imag() << std::endl;
 		}
 		outFile.close();
 	}
+	outFileName = "./bestLikeFile";
+	outFile.open(outFileName.c_str(), std::ios_base::app);
+	outFile << seed << " " << bestLike <<std::endl;
+	outFile.close();
 	return 0;
 }
 /* Testcode for hessians...

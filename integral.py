@@ -77,6 +77,22 @@ class integral:
 				vectors.append(vec)
 		return vals, vectors
 
+	def getBiggestVector(self):
+		if not self.hasEigen:
+			raise RuntimeError("Eigensystem not calculated")
+		vectors = [[]]
+		maxVal = 0.
+		maxI   = 0
+		for i in range(self.nAmpl):
+			if self.val[i] > maxVal:
+				maxVal = self.val[i]
+		print maxVal
+		vals = [maxVal]
+		for i in range(self.nAmpl):
+			vectors[0].append(self.vec[i,maxI])
+		return vals, vectors		
+
+
 	def norm(self):
 		if self.normalized:
 			return
@@ -108,13 +124,13 @@ def main():
 	fileName = "./build/integral.dat"
 #	fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/fkrinner/trunk/massDependentFit/scripts/anything/integralBinStudy/resultat/intMatrix_15696_104772"
 	inte     = integral(fileName, toComplex)
-	inte.removeIndices(0)
-	inte.norm()
+#	inte.removeIndices(0)
+#	inte.norm()
 	inte.eigen()
-	vecs = inte.getSmallVectors(0.005)
-	for i in range(inte.nAmpl):
-		print inte.norms[i],',',
-	print
+	vals,vecs = inte.getSmallVectors(0.005)
+	for i in range(len(vecs[0])):
+		print vecs[0][i]
+	print vals
 
 
 if __name__ == "__main__":

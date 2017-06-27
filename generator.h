@@ -21,7 +21,7 @@ class generator {
 
 class threeParticleMassGenerator : public generator {
 	public:
-		threeParticleMassGenerator (double initialMass,const std::vector<double>& fsMasses);
+		threeParticleMassGenerator (double initialMass,const std::vector<double>& fsMasses, std::shared_ptr<kinematicSignature> kinSig = std::make_shared<kinematicSignature>(1));
 
 		std::vector<double> generate    ()                               const override;
 		bool                isValidPoint(const std::vector<double>& kin) const;

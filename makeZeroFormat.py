@@ -90,14 +90,27 @@ def main():
 	nF0, nRho, nF2 = loadN()
 
 	bin            = 34
-	amplFileName   = "./build/amplitudes.dat"
-	hessFileName   = "./build/hessian.dat"
+#				Seed    # neg log like
+	seedAppendix   =  "_1496824625" # -1.32138e+07
+#	seedAppendix   =  "_1496824628" # -1.32195e+07
+#	seedAppendix   =  "_1496824630" # -1.32153e+07
+#	seedAppendix   =  "_1496824623" # -1.32168e+07
+
+#	seedAppendix   =  "_1496841486"# -1.31857e+07
+	seedAppendix   =  "_1496841479"# -1.31913e+07
+#	seedAppendix   =  "_1496841482"# -1.31811e+07
+#	seedAppendix   =  "_1496841474"# -1.31872e+07
+
+
+
+	amplFileName   = "./build/amplitudes"+seedAppendix+".dat"
+	hessFileName   = "./build/hessian"+seedAppendix+".dat"
 	inteFileName   = "./build/integral.dat"
 	binFfileName   = "./build/binningF0.dat"
 	binRfileName   = "./build/binningRho.dat"
 	binF2fileName  = "./build/binningF2.dat"
 
-	conjugate      = True
+	conjugate      = False
 
 	binningF0      = loadBinning(binFfileName)
 	binningRho     = loadBinning(binRfileName)
@@ -146,7 +159,7 @@ def main():
 	inte.eigen()
 	norm = inte.norms
 
-	svals, sev = inte.getSmallVectors(0.005)
+	svals, sev = inte.getSmallVectors(0.001)
 
 	hasZeroMode = False
 	if len(sev) > 0:
@@ -165,7 +178,7 @@ def main():
 				sign  = (-1)**(iNdex + jNdex)
 				COMA[iNdex, jNdex] *= sign
 
-	COMA     = projectOutPhaseDirection(COMA, ampl)
+#	COMA     = projectOutPhaseDirection(COMA, ampl)
 
 	with root_open("DpPiPiPi.root", "RECREATE") as outFile:
 		COMAhist = pyRootPwa.ROOT.TH2D(comaName, comaName, 2*nBins, 0.,1., 2*nBins, 0.,1.)

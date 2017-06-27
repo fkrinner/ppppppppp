@@ -37,4 +37,17 @@ class threeParticleIsobaricAmplitude : public amplitude {
 		std::shared_ptr<massShape>         _massShape;
 		std::shared_ptr<angularDependence> _angDep;
 };
+
+class threeParticlaIsobaricAmplitudeNoBose : public amplitude {
+	public:
+		threeParticlaIsobaricAmplitudeNoBose(size_t isobarIndex, std::string name, std::shared_ptr<massShape> shape, std::shared_ptr<angularDependence> angDep, std::vector<double> fsMasses);
+
+		std::complex<double> eval(const std::vector<double>& kin) const;
+	private:
+		size_t                             _isobarIndex;
+		double                             _sumFSmasses;
+		std::shared_ptr<massShape>         _massShape;
+		std::shared_ptr<angularDependence> _angDep;
+	
+};
 #endif//AMPLITUDE__

@@ -32,6 +32,8 @@ ADD_LIBRARY(logLikelihood      SHARED logLikelihood.cc     )
 
 #set executables
 ADD_EXECUTABLE(p9.exe ppppppppp.cxx )
+ADD_EXECUTABLE(K9.exe KKKKKKKKK.cxx )
+ADD_EXECUTABLE(e9.exe eeeeeeeee.cxx )
 
 # link libraries
 TARGET_LINK_LIBRARIES(p9.exe massShape         )
@@ -42,6 +44,24 @@ TARGET_LINK_LIBRARIES(p9.exe integrator        )
 TARGET_LINK_LIBRARIES(p9.exe modelAmplitude    )
 TARGET_LINK_LIBRARIES(p9.exe modelGenerator    )
 TARGET_LINK_LIBRARIES(p9.exe logLikelihood     )
+
+TARGET_LINK_LIBRARIES(K9.exe massShape         )
+TARGET_LINK_LIBRARIES(K9.exe angularDependence )
+TARGET_LINK_LIBRARIES(K9.exe amplitude         )
+TARGET_LINK_LIBRARIES(K9.exe generator         )
+TARGET_LINK_LIBRARIES(K9.exe integrator        )
+TARGET_LINK_LIBRARIES(K9.exe modelAmplitude    )
+TARGET_LINK_LIBRARIES(K9.exe modelGenerator    )
+TARGET_LINK_LIBRARIES(K9.exe logLikelihood     )
+
+TARGET_LINK_LIBRARIES(e9.exe massShape         )
+TARGET_LINK_LIBRARIES(e9.exe angularDependence )
+TARGET_LINK_LIBRARIES(e9.exe amplitude         )
+TARGET_LINK_LIBRARIES(e9.exe generator         )
+TARGET_LINK_LIBRARIES(e9.exe integrator        )
+TARGET_LINK_LIBRARIES(e9.exe modelAmplitude    )
+TARGET_LINK_LIBRARIES(e9.exe modelGenerator    )
+TARGET_LINK_LIBRARIES(e9.exe logLikelihood     )
 
 TARGET_LINK_LIBRARIES(amplitude massShape          )
 TARGET_LINK_LIBRARIES(amplitude angularDependence  )
