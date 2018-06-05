@@ -77,7 +77,9 @@ std::complex<double> sameMassOnePnonRelativistic::eval(const std::vector<double>
 	const double s12 = kin[1];
 	const double s13 = kin[2];
 	const double m2  = _fsMass*_fsMass;
-	double retVal    = -1./4.; //- pow(s12/s,.5)/4.; Use definitions as in the paper
+
+	double retVal    = -1./4.; // Use definitions as in the paper
+//	double retVal    = - pow(s12/s,.5)/4.; //  Use definitions as by Dima
 	retVal *= s - s12 - 2*s13 + 3*m2;
 	return std::complex<double> (retVal, 0.);
 }

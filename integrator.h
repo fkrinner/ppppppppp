@@ -3,21 +3,23 @@
 #include"amplitude.h"
 #include"generator.h"
 #include"kinematicSignature.h"
+#include"efficiencyFunction.h"
 #include<string>
 #include<vector>
 #include<memory>
 #include<complex>
+
 class integrator {
 	public:
-		integrator(size_t integralPoints, std::shared_ptr<generator> pointGenerator, const std::vector<std::shared_ptr<amplitude> >& amplitudes);
+		integrator(size_t integralPoints, std::shared_ptr<generator> pointGenerator, const std::vector<std::shared_ptr<amplitude> >& amplitudes, std::shared_ptr<efficiencyFunction>& efficiency);
 
 		bool                                             integrate         ();
-		std::vector<std::vector<std::complex<double> > > getIntegralMatrix ()                   const;
-		std::pair<bool, std::complex<double> >           element           (size_t i, size_t j) const;
+		std::vector<std::vector<std::complex<double> > > getIntegralMatrix (bool accCorr = false)                     const;
+		std::pair<bool, std::complex<double> >           element           (size_t i, size_t j, bool accCorr = false) const;
 
-		double                            totalIntensity   (const std::vector<std::complex<double> >& prodAmpl) const;
-		std::vector<double>               DtotalIntensity  (const std::vector<std::complex<double> >& prodAmpl) const;
-		std::vector<std::vector<double> > DDtotalIntensity (const std::vector<std::complex<double> >& prodAmpl) const;
+		double                            totalIntensity   (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
+		std::vector<double>               DtotalIntensity  (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
+		std::vector<std::vector<double> > DDtotalIntensity (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
 
 		bool                                isIntegrated ()                     const {return _isIntegrated;}
 		bool                                setNpoints   (size_t n);
@@ -33,7 +35,9 @@ class integrator {
 		size_t                                           _nPoints;
 		std::vector<std::shared_ptr<amplitude> >         _amplitudes;
 		std::shared_ptr<generator>                       _generator;
+		std::shared_ptr<efficiencyFunction>              _efficiency;
 		std::vector<std::vector<std::complex<double> > > _integralMatrix;
+		std::vector<std::vector<std::complex<double> > > _accCorrIntegralMatrix;
 };
 #endif//INTEGRATOR__
 

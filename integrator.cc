@@ -1,8 +1,9 @@
 #include"integrator.h"
+#include"utils.h"
 #include<iostream>
 #include<fstream>
-integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGenerator, const std::vector<std::shared_ptr<amplitude> >& amplitudes):
-	_isIntegrated(false), _nAmpl(amplitudes.size()), _nPoints(integralPoints), _amplitudes(amplitudes), _generator(pointGenerator), _integralMatrix() {
+integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGenerator, const std::vector<std::shared_ptr<amplitude> >& amplitudes, std::shared_ptr<efficiencyFunction>& efficiency):
+	_isIntegrated(false), _nAmpl(amplitudes.size()), _nPoints(integralPoints), _amplitudes(amplitudes), _generator(pointGenerator), _efficiency(efficiency), _integralMatrix(), _accCorrIntegralMatrix() {
 	if (_amplitudes.size() == 0) {
 		std::cerr << "integrator::integrator(...): ERROR: No amplitudes given" << std::endl;
 		throw;
@@ -18,13 +19,22 @@ integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGe
 		std::cerr << "integrator::integrator(...): ERROR: Kinematic signatures in amplitudes and generator differ" << std::endl;
 		throw;
 	}
+	if (not (*(_efficiency->kinSignature()) == *(_amplitudes[0]->kinSignature()))) {
+		std::cerr << "integrator::integrator(...): ERROR: Kinematic signatures in amplitudes and efficiency differ" << std::endl;
+		throw;
+	}
 }
 
 bool integrator::integrate() {
-	_integralMatrix = std::vector<std::vector<std::complex<double> > > (nAmpl(), std::vector<std::complex<double> > (nAmpl(), std::complex<double>(0.,0.)));
+	_integralMatrix        = std::vector<std::vector<std::complex<double> > > (nAmpl(), std::vector<std::complex<double> > (nAmpl(), std::complex<double>(0.,0.)));
+	_accCorrIntegralMatrix = std::vector<std::vector<std::complex<double> > > (nAmpl(), std::vector<std::complex<double> > (nAmpl(), std::complex<double>(0.,0.)));
 	for (size_t point = 0; point < _nPoints; ++point) {
 		std::vector<double> kin = _generator->generate();
 		std::vector<std::complex<double> > ampl(nAmpl(), std::complex<double>(0.,0.));
+		bool accepted = false;
+		if (_efficiency->call(kin) > random()) {
+			accepted = true;
+		}
 		size_t countAmp = 0;
 		for (std::shared_ptr<amplitude> a : _amplitudes) {
 			ampl[countAmp] = a->eval(kin);
@@ -33,26 +43,33 @@ bool integrator::integrate() {
 		for (size_t i = 0; i < nAmpl(); ++i) {
 			for (size_t j = 0; j < nAmpl(); ++j) {
 				_integralMatrix[i][j] += std::conj(ampl[i])*ampl[j];
+				if (accepted) {
+					_accCorrIntegralMatrix[i][j] += std::conj(ampl[i])*ampl[j];
+				}
 			}
 		}
 	}
 	for (size_t i = 0; i < nAmpl(); ++i) {
 		for (size_t j = 0; j < nAmpl(); ++j) {
-			_integralMatrix[i][j] /= _nPoints;
+			_integralMatrix[i][j]        /= _nPoints;
+			_accCorrIntegralMatrix[i][j] /= _nPoints;
 		}
 	}
 	_isIntegrated = true;
 	return true;
 }
 
-std::vector<std::vector<std::complex<double> > > integrator::getIntegralMatrix() const {
+std::vector<std::vector<std::complex<double> > > integrator::getIntegralMatrix(bool accCorr) const {
 	if (not _isIntegrated) {
 		std::cerr << "integrator::getIntegralMatrix(): ERROR: Not integrated yet" << std::endl;
+	}
+	if (accCorr){
+		return _accCorrIntegralMatrix;
 	}
 	return _integralMatrix;
 }
 
-std::pair<bool, std::complex<double> > integrator::element(size_t i, size_t j) const {
+std::pair<bool, std::complex<double> > integrator::element(size_t i, size_t j, bool accCorr) const {
 	if (not _isIntegrated) {
 		std::cerr << "integrator::element(): ERROR: Not integrated yet" << std::endl;
 		return std::pair<bool, std::complex<double> >(false, std::complex<double>(0.,0.));
@@ -65,10 +82,13 @@ std::pair<bool, std::complex<double> > integrator::element(size_t i, size_t j) c
 		std::cerr << "integrator::element(): ERROR: Second index too big" << std::endl;
 		return std::pair<bool, std::complex<double> >(false, std::complex<double>(0.,0.));
 	}
+	if (accCorr){
+		return std::pair<bool, std::complex<double> >(true, _accCorrIntegralMatrix[i][j]);	
+	}
 	return std::pair<bool, std::complex<double> >(true, _integralMatrix[i][j]);	
 }
 
-double integrator::totalIntensity(const std::vector<std::complex<double> >& prodAmpl) const {
+double integrator::totalIntensity(const std::vector<std::complex<double> >& prodAmpl, bool accCorr) const {
 	if (not _isIntegrated) {
 		std::cerr << "integrator::totalIntensity(...): ERROR: Not integrated yet. Returning zero." << std::endl;
 		return 0.;
@@ -77,20 +97,21 @@ double integrator::totalIntensity(const std::vector<std::complex<double> >& prod
 		std::cerr << "integrator::totalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
 		return 0.;
 	}
+	const std::vector<std::vector<std::complex<double> > > &integralMatrix = accCorr ? _accCorrIntegralMatrix : _integralMatrix;
 	std::complex<double> retVal(0.,0.);
 	for (size_t i = 0; i < nAmpl(); ++i) {
 		for (size_t j = 0; j < nAmpl(); ++j) {
-			double norm = pow(_integralMatrix[i][i].real() * _integralMatrix[j][j].real(), .5);
+			double norm = pow(_integralMatrix[i][i].real() * _integralMatrix[j][j].real(), .5); // Always normalized to phaseSpace
 			if (norm == 0.) {
 				continue;
 			}
-			retVal += std::conj(prodAmpl[i]) * _integralMatrix[i][j] * prodAmpl[j]/norm;			
+			retVal += std::conj(prodAmpl[i]) * integralMatrix[i][j] * prodAmpl[j]/norm;			
 		}
 	}
 	return retVal.real();	
 }
 
-std::vector<double> integrator::DtotalIntensity(const std::vector<std::complex<double> >& prodAmpl) const {
+std::vector<double> integrator::DtotalIntensity(const std::vector<std::complex<double> >& prodAmpl, bool accCorr) const {
 // Return a vector of length 2*nAmpl() for the derivative w.r.t. re, and im : {dRe0, dIm0, dRe1, ..., dImnAmpl()}
 	if (not _isIntegrated) {
 		std::cerr << "integrator::DtotalIntensity(...): ERROR: Not integrated yet. Returning empty vector." << std::endl;
@@ -101,13 +122,14 @@ std::vector<double> integrator::DtotalIntensity(const std::vector<std::complex<d
 		return std::vector<double>();
 	}
 	std::vector<double> retVal(2*nAmpl(), 0.);
+	const std::vector<std::vector<std::complex<double> > > &integralMatrix = accCorr ? _accCorrIntegralMatrix : _integralMatrix;
 	for (size_t ai = 0; ai < nAmpl(); ++ai) {
 		for (size_t aj = 0; aj < nAmpl(); ++aj) {
-			double norm = pow(_integralMatrix[ai][ai].real() * _integralMatrix[aj][aj].real(), .5);
+			double norm = pow(_integralMatrix[ai][ai].real() * _integralMatrix[aj][aj].real(), .5); // Always normalized to phaseSpace
 			if (norm == 0.) {
 				continue;
 			}
-			std::complex<double> factor = _integralMatrix[ai][aj] * prodAmpl[aj]/norm*2.;
+			std::complex<double> factor = integralMatrix[ai][aj] * prodAmpl[aj]/norm*2.;
 			retVal[2*ai  ] += factor.real();
 			retVal[2*ai+1] += factor.imag();
 		}
@@ -115,7 +137,7 @@ std::vector<double> integrator::DtotalIntensity(const std::vector<std::complex<d
 	return retVal;
 }
 
-std::vector<std::vector<double> > integrator::DDtotalIntensity(const std::vector<std::complex<double> >& prodAmpl) const {
+std::vector<std::vector<double> > integrator::DDtotalIntensity(const std::vector<std::complex<double> >& prodAmpl, bool accCorr) const {
 	if (not _isIntegrated) {
 		std::cerr << "integrator::DDtotalIntensity(...): ERROR: Not integrated yet. Returning empty vector." << std::endl;
 		return std::vector<std::vector<double> >();
@@ -125,13 +147,14 @@ std::vector<std::vector<double> > integrator::DDtotalIntensity(const std::vector
 		return std::vector<std::vector<double> >();
 	}
 	std::vector<std::vector<double> > retVal(2*nAmpl(), std::vector<double>(2*nAmpl(),0.));
+	const std::vector<std::vector<std::complex<double> > > &integralMatrix = accCorr ? _accCorrIntegralMatrix : _integralMatrix;
 	for (size_t ai = 0; ai < nAmpl(); ++ai) {
 		for (size_t aj = 0; aj < nAmpl(); ++aj) {
-			double norm = pow(_integralMatrix[ai][ai].real() * _integralMatrix[aj][aj].real(), .5);
+			double norm = pow(_integralMatrix[ai][ai].real() * _integralMatrix[aj][aj].real(), .5); // Always normalized to phaseSpace
 			if (norm == 0.) {
 				continue;
 			}
-			std::complex<double> factor = _integralMatrix[ai][aj]/norm*2.;
+			std::complex<double> factor = integralMatrix[ai][aj]/norm*2.;
 			retVal[2*ai  ][2*aj  ] += factor.real();
 			retVal[2*ai  ][2*aj+1] -= factor.imag();
 			retVal[2*ai+1][2*aj  ] += factor.imag();

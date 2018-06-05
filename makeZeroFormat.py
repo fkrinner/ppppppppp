@@ -40,7 +40,7 @@ def loadAmplitudeFile(fileName, conjugate = False):
 
 def loadN():
 	ns = []
-	with open('./build/nDp.dat') as inin:
+	with open('./build/largeErrorStudy_nDp.dat') as inin:
 		for line in inin.readlines():
 			ns += [int(v) for v in line.split()]
 	if not len(ns) == 3:
@@ -91,26 +91,37 @@ def main():
 
 	bin            = 34
 #				Seed    # neg log like
-	seedAppendix   =  "_1496824625" # -1.32138e+07
-#	seedAppendix   =  "_1496824628" # -1.32195e+07
-#	seedAppendix   =  "_1496824630" # -1.32153e+07
-#	seedAppendix   =  "_1496824623" # -1.32168e+07
+#	seedAppendix   =  "_1498549364"
+#
+#	seedAppendix   =  "_1498570556" # -1.31183e+07
+#	seedAppendix   =  "_1498570525" # -1.31178e+07
+#	seedAppendix   =  "_1498570546" # -1.31174e+07
+#	seedAppendix   =  "_1498570532" # -1.31184e+07
+#	seedAppendix   =  "_1498570552" # -1.31156e+07
 
-#	seedAppendix   =  "_1496841486"# -1.31857e+07
-	seedAppendix   =  "_1496841479"# -1.31913e+07
-#	seedAppendix   =  "_1496841482"# -1.31811e+07
-#	seedAppendix   =  "_1496841474"# -1.31872e+07
+#	seedAppendix   =  "_1498652006" # -1.34472e+07
+#	seedAppendix   =  "_1498652015" # -1.34515e+07
+#	seedAppendix   =  "_1498652011" # -1.34499e+07
+#	seedAppendix   =  "_1498652008" # -1.34471e+07
+#	seedAppendix   =  "_1498652038" # -1.34464e+07
 
+#	seedAppendix   =  "_1498815114" # -1.34505e+07
+#	seedAppendix   =  "_1498815131" # -1.34466e+07
+#	seedAppendix   =  "_1498815125" # -1.34459e+07
+#	seedAppendix   =  "_1498815128" # -1.34462e+07
+#	seedAppendix   =  "_1498815121" # -1.34475e+07
 
+#	seedAppendix = "_1512582427"
+	seedAppendix = "_1512637090"
 
-	amplFileName   = "./build/amplitudes"+seedAppendix+".dat"
-	hessFileName   = "./build/hessian"+seedAppendix+".dat"
-	inteFileName   = "./build/integral.dat"
-	binFfileName   = "./build/binningF0.dat"
-	binRfileName   = "./build/binningRho.dat"
+	amplFileName   = "./build/largeErrorStudy_amplitudes"+seedAppendix+".dat"
+	hessFileName   = "./build/largeErrorStudy_hessian"+seedAppendix+".dat"
+	inteFileName   = "./build/largeErrorStudy_integral.dat"
+	binFfileName   = "./build/largeErrorStudy_binningF0.dat"
+	binRfileName   = "./build/largeErrorStudy_binningRho.dat"
 	binF2fileName  = "./build/binningF2.dat"
 
-	conjugate      = False
+	conjugate      = True
 
 	binningF0      = loadBinning(binFfileName)
 	binningRho     = loadBinning(binRfileName)
@@ -167,7 +178,9 @@ def main():
 	else:
 		print "No zero-mode found"
 
-	comaName = "COMA_0_"+str(bin)
+	comaName   = "COMA_0_"+str(bin)
+	histReName = "INTEGRAL_r_0_"+str(bin)
+	histImName = "INTEGRAL_i_0_"+str(bin)
 #	COMA     = la.inv(hessian)
 	COMA     = utils.pinv(hessian, 1.e-4)
 	if conjugate:
@@ -180,8 +193,18 @@ def main():
 
 #	COMA     = projectOutPhaseDirection(COMA, ampl)
 
-	with root_open("DpPiPiPi.root", "RECREATE") as outFile:
+	with root_open("DpPiPiPi_largeErrorStudy.root", "RECREATE") as outFile:
 		COMAhist = pyRootPwa.ROOT.TH2D(comaName, comaName, 2*nBins, 0.,1., 2*nBins, 0.,1.)
+		intReHist = pyRootPwa.ROOT.TH2D(histReName, histReName, nBins, 0.,1.,nBins,0.,1.)
+		intImHist = pyRootPwa.ROOT.TH2D(histImName, histImName, nBins, 0.,1.,nBins,0.,1.)
+		for i in range(nBins):
+			for j in range(nBins):
+					intReHist.SetBinContent(i+1,j+1,inte[i,j].real)
+					intImHist.SetBinContent(i+1,j+1,inte[i,j].imag)
+		intReHist.Write()
+		intImHist.Write()
+
+	
 		for i in range(2*nBins):
 #			COMAhist.SetBinContent(i+1, i+1, 1.) # first two are fixed isobar
 			for j in range(2*nBins):

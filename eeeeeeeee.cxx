@@ -44,6 +44,8 @@ int main() {
 	std::shared_ptr<threeParticleIsobaricAmplitude> Pwave = std::make_shared<threeParticleIsobaricAmplitude>(true, std::string("PBW"), BW, Pangle);
 	std::vector<std::shared_ptr<amplitude> > amplitudes;
 
+	std::shared_ptr<efficiencyFunction> efficiency = std::make_shared<threeParticlPerfectEfficiency>(Swave->kinSignature());
+
 	for (size_t b = 0; b < nBins; ++b) {
 		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binning[b], binning[b+1]);
 		std::shared_ptr<threeParticleIsobaricAmplitude> stepWave = std::make_shared<threeParticleIsobaricAmplitude>(true, std::string("Swave[") + std::to_string(b) + std::string("]"), step, Sangle);
@@ -57,7 +59,7 @@ int main() {
 //	amplitudes.push_back(Swave);
 //	amplitudes.push_back(Pwave);
 	
-	std::shared_ptr<integrator> integral = std::make_shared<integrator>(integralPoints, generator, amplitudes);
+	std::shared_ptr<integrator> integral = std::make_shared<integrator>(integralPoints, generator, amplitudes, efficiency);
 	integral->integrate();
 	integral->writeToFile("./integrals0mp.dat");
 	return 0;

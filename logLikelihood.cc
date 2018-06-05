@@ -251,9 +251,9 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 		ll += log(norm(ampl));
 	}
 	if (_extended) {
-		ll -= _integral->totalIntensity(prodAmps);
+		ll -= _integral->totalIntensity(prodAmps, true);
 	} else {
-		ll -= log(_integral->totalIntensity(prodAmps))*(double)_nPoints;
+		ll -= log(_integral->totalIntensity(prodAmps, true))*(double)_nPoints;
 	}
 	++_nCalls;
 	if (_nCalls%_nCallsPrint == 0) {
@@ -281,13 +281,13 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 			retVal[2*a+1] += factor.imag(); // Two factors of -1: Complex i*i = -1 and since the NEGATIVE likelihood is used
 		}
 	}
-	std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps);
+	std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps, true);
 	if (_extended) {
 		for (size_t a = 0; a < 2*_nAmpl; ++a) {
 			retVal[a] += Dintegral[a];
 		}
 	} else {
-		double totalIntens = _integral->totalIntensity(prodAmps);
+		double totalIntens = _integral->totalIntensity(prodAmps, true);
 		for (size_t a = 0; a< 2*_nAmpl; ++a) {
 			retVal[a] += Dintegral[a]/totalIntens*(double)_nPoints;
 		}
@@ -326,7 +326,7 @@ std::vector<std::vector<double> > logLikelihood::DDeval(std::vector<std::complex
 			}
 		}
 	}
-	std::vector<std::vector<double> > DDintegral = _integral->DDtotalIntensity(prodAmps);
+	std::vector<std::vector<double> > DDintegral = _integral->DDtotalIntensity(prodAmps, true);
 	if (_extended) {
 		for (size_t i = 0; i < 2*_nAmpl; ++i) {
 			for (size_t j = 0; j < 2*_nAmpl; ++j) {
@@ -334,8 +334,8 @@ std::vector<std::vector<double> > logLikelihood::DDeval(std::vector<std::complex
 			}
 		}
 	} else {
-		double totalIntens = _integral->totalIntensity(prodAmps);
-		std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps);
+		double totalIntens = _integral->totalIntensity(prodAmps, true);
+		std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps, true);
 		for (size_t i = 0; i < 2*_nAmpl; ++i) {
 			for (size_t j = 0; j < 2*_nAmpl; ++j) {
 				retVal[i][j] += (DDintegral[i][j]/totalIntens - Dintegral[i]*Dintegral[j]/totalIntens/totalIntens)*(double)_nPoints;
@@ -351,7 +351,7 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 		return false;
 	}
 	_nPoints = dataPoints.size();
-	_points = std::vector<std::vector<std::complex<double> > > (_nPoints, std::vector<std::complex<double> > (_nAmpl));
+	_points  = std::vector<std::vector<std::complex<double> > > (_nPoints, std::vector<std::complex<double> > (_nAmpl));
 	for(size_t a = 0; a < _nAmpl; ++a) {
 		std::pair<bool, std::complex<double> > diag = _integral->element(a,a);
 		if (not diag.first) {

@@ -34,6 +34,12 @@ class integral:
 		self.integralMatrix = np.asarray(matrix, dtype = complex)
 		return True
 
+	def __getitem__(self, index):
+		return self.integralMatrix[index]
+
+	def __len__(self):
+		return self.nAmpl
+
 	def removeIndices(self, indices):
 		if isinstance(indices, int):
 			indices = [indices]
@@ -50,6 +56,61 @@ class integral:
 			for j,J in enumerate(newIndexMap):
 				newMatrix[i,j] = self.integralMatrix[I,J]
 		self.integralMatrix = newMatrix
+
+	def getNewBinIndex(self, i,n):
+		if i < self.nAmpl/2:
+			retVal = int(i/n)
+#			if i%50 == 0:
+#				print "+",i,retVal
+			return retVal
+		else:
+			nBinsPerWave = self.nAmpl/2
+			nBinsNew     = int(nBinsPerWave/n)
+			ii = i - self.nAmpl/2
+			jj = int(ii/n)
+			retVal =  nBinsNew + jj
+#			if i%50 == 0:
+#				print "-",i,retVal
+			return retVal
+
+	def rebin(self, n = 2):
+		if n == 1:
+			return True
+		if n > self.nAmpl/2:
+			return False
+		self.hasEigen = False
+		nBinsPerWave = self.nAmpl/2
+		nBinsNew     = int(nBinsPerWave/n)
+		if 2*nBinsNew*n < self.nAmpl:
+			nBinsNew += 1
+		if self.normalized:
+			newNorm = np.zeros((2*nBinsNew))
+		newMatrix = np.zeros((2*nBinsNew, 2*nBinsNew), dtype = complex)
+		for i in range(self.nAmpl):
+			I = self.getNewBinIndex(i,n)
+			if self.normalized:
+				newNorm[i] += self.norms[i]
+			for j in range(self.nAmpl):
+				J = self.getNewBinIndex(j,n)
+				newMatrix[I,J] += self.integralMatrix[i,j]	
+#			raise Exception
+		self.nAmpl = 2*nBinsNew
+		if self.normalized:
+			self.norms = newNorm
+			for i in range(self.nAmpl):
+				for j in range(self.nAmpl):
+					if i == j:
+						continue
+					nrm = (newMatrix[i,i] * newMatrix[j,j])**.5
+					if nrm == 0.:
+						newMatrix[i,j] = 0.
+					else:
+						newMatrix[i,j] /= nrm
+			for i in range(self.nAmpl):
+				newMatrix[i,i] = 1.
+
+		self.integralMatrix = newMatrix
+		return True
 
 	def eigen(self):
 		self.wasNormalized = self.normalized
@@ -76,6 +137,27 @@ class integral:
 					vec[j] = self.vec[j,i]
 				vectors.append(vec)
 		return vals, vectors
+
+	def getThreeSmallestValues(self):
+		if not self.hasEigen:
+			raise RuntimeError("Eigensystem not calculated")
+		v1 = float("inf")
+		v2 = float("inf")
+		v3 = float("inf")
+		for val in self.val:
+			if val == 0.:
+				continue
+			if val < v1:
+				v3 = v2
+				v2 = v1
+				v1 = val
+			elif val < v2:
+				v3 = v2
+				v2 = val
+			elif val < v3:
+				v3 = val
+		return v1,v2,v3
+		
 
 	def getBiggestVector(self):
 		if not self.hasEigen:
