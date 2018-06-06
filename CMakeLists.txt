@@ -28,8 +28,9 @@ ADD_LIBRARY(generator          SHARED generator.cc          )
 ADD_LIBRARY(kinematicSignature SHARED kinematicSignature.cc )
 ADD_LIBRARY(modelAmplitude     SHARED modelAmplitude.cc     )
 ADD_LIBRARY(modelGenerator     SHARED modelGenerator.cc     )
-ADD_LIBRARY(logLikelihood      SHARED logLikelihood.cc     )
-ADD_LIBRARY(efficiencyFunction SHARED efficiencyFunction.cc     )
+ADD_LIBRARY(logLikelihood      SHARED logLikelihood.cc      )
+ADD_LIBRARY(efficiencyFunction SHARED efficiencyFunction.cc )
+ADD_LIBRARY(BELLE_efficiency   SHARED BELLE_efficiency.cc )
 
 #set executables
 ADD_EXECUTABLE(p9.exe ppppppppp.cxx )
@@ -83,8 +84,9 @@ TARGET_LINK_LIBRARIES(modelGenerator generator      )
 TARGET_LINK_LIBRARIES(logLikelihood amplitude     )
 TARGET_LINK_LIBRARIES(logLikelihood integrator    )
 TARGET_LINK_LIBRARIES(logLikelihood ${Nlopt_LIBS} )
-TARGET_LINK_LIBRARIES(logLikelihood ${ROOT_LIBS}  )
+#TARGET_LINK_LIBRARIES(logLikelihood ${ROOT_LIBS}  )
 
 TARGET_LINK_LIBRARIES(integrator amplitude          )
 TARGET_LINK_LIBRARIES(integrator generator          )
 TARGET_LINK_LIBRARIES(integrator efficiencyFunction )
+
