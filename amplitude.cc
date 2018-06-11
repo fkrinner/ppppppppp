@@ -67,9 +67,6 @@ threeParticlaIsobaricAmplitudeNoBose::threeParticlaIsobaricAmplitudeNoBose(size_
 
 std::complex<double> threeParticlaIsobaricAmplitudeNoBose::eval(const std::vector<double>& kin) const {
 	std::complex<double> retVal = _angDep->eval(kin);
-	if (_isobarIndex == 12) {
-
-	}
 	double mIsob = 0.;
 	if (_isobarIndex == 12) {
 		mIsob = kin[1];

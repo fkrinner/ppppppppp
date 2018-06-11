@@ -105,4 +105,34 @@ class ratioOfDependences : public angularDependence {
 		std::shared_ptr<angularDependence> _numerator;
 		std::shared_ptr<angularDependence> _denominator;
 };
+
+class BELLE_S : public angularDependence {
+	public: 
+		BELLE_S(size_t isobarIndex);
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	private:
+		size_t _isobarIndex;
+};
+
+class BELLE_P : public angularDependence {
+	public: 
+		BELLE_P(size_t isobarIndex);
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+
+		bool setFSmasses(const std::vector<double> newMasses);
+	private:
+		size_t _isobarIndex;
+		std::vector<double> _fsMasses;
+};
+
+class BELLE_D : public angularDependence {
+	public: 
+		BELLE_D(size_t isobarIndex);
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+
+		bool setFSmasses(const std::vector<double> newMasses);
+	private:
+		size_t _isobarIndex;
+		std::vector<double> _fsMasses;
+};
 #endif// ANGULARDEPENDENCE__

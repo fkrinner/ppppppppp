@@ -1,4 +1,5 @@
 #include"angularDependence.h"
+#include"constants.h"
 #include<iostream>
 angularDependence::angularDependence(std::shared_ptr<kinematicSignature> kinSignature, std::string name):
 	_kinSignature(kinSignature), _name(name) {}
@@ -176,6 +177,150 @@ std::complex<double> arbitraryMass_P_nonRelativistic::eval(const std::vector<dou
 	}
 	std::cout << "arbitraryMass_P_nonRelativistic::eval(...): ERROR: None of the isobarCombinations matched. Return 0." << std::endl;
 	return std::complex<double>(0.,0.);
+}
+
+BELLE_S::BELLE_S(size_t isobarIndex) : angularDependence(std::make_shared<kinematicSignature>(2), "BELLE_S"), _isobarIndex(isobarIndex) {
+        if (isobarIndex != 12 and isobarIndex != 13 and isobarIndex != 23) {
+                std::cout <<  "BELLE_S(...): ERROR: None of the three possible isobar masses match (12, 13 and 23) the given value:" << isobarIndex << std::endl;
+                throw;
+        }
+}
+
+std::complex<double> BELLE_S::eval(const std::vector<double> &kin) const {
+        if (kin.size() != _kinSignature->nKin()) {
+                std::cerr << "BELLE_S::eval(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
+                return std::complex<double>(0.,0.);
+        }
+	return std::complex<double>(1.,0.);
+}
+
+BELLE_P::BELLE_P(size_t isobarIndex) : angularDependence(std::make_shared<kinematicSignature>(2), "BELLE_P"), _isobarIndex(isobarIndex) {
+        if (isobarIndex != 12 and isobarIndex != 13 and isobarIndex != 23) {
+                std::cout <<  "BELLE_P(...): ERROR: None of the three possible isobar masses match (12, 13 and 23) the given value:" << isobarIndex << std::endl;
+                throw;
+        }
+	_fsMasses = {mPi, mKs, mPi};
+}
+
+std::complex<double> BELLE_P::eval(const std::vector<double> &kin) const {
+        if (kin.size() != _kinSignature->nKin()) {
+                std::cerr << "BELLE_P::eval(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
+                return std::complex<double>(0.,0.);
+        }
+
+	double mD2  = kin[0];
+	double mA2  = 0.;
+	double mB2  = 0.;
+	double mC2  = 0.;
+	double mAB2 = 0.;
+	double mAC2 = 0.;
+	double mBC2 = 0.;
+
+	double sKpiWrong = mD2 + _fsMasses[0]*_fsMasses[0] +  _fsMasses[1]*_fsMasses[1]+ _fsMasses[2]*_fsMasses[2]- kin[1] - kin[2];
+	if (_isobarIndex == 12) { // ((piRight, Ks), piWrong)
+                mA2 = _fsMasses[0]*_fsMasses[0];
+                mB2 = _fsMasses[1]*_fsMasses[1];
+                mC2 = _fsMasses[2]*_fsMasses[2];
+
+		mAB2 = kin[1];
+		mAC2 = kin[2];
+		mBC2 = sKpiWrong;
+	} else if (_isobarIndex == 13) { // ((piRight, piWrong), Ks)
+                mA2 = _fsMasses[2]*_fsMasses[2];
+                mB2 = _fsMasses[0]*_fsMasses[0];
+                mC2 = _fsMasses[1]*_fsMasses[1];
+
+		mAB2 = kin[2];
+		mAC2 = sKpiWrong;
+		mBC2 = kin[1];
+	} else if (_isobarIndex == 23) { // ((Ks, piWrong), piRight)
+                mA2 = _fsMasses[1]*_fsMasses[1];
+                mB2 = _fsMasses[2]*_fsMasses[2];
+                mC2 = _fsMasses[0]*_fsMasses[0];
+
+		mAB2 = sKpiWrong;
+		mAC2 = kin[1];
+		mBC2 = kin[2];
+	}
+	double retVal = mAC2 - mBC2 + (mD2-mC2)*(mB2-mA2)/(mAB2);
+	return std::complex<double>(retVal, 0.);
+}
+
+bool BELLE_P::setFSmasses(const std::vector<double> newMasses) {
+	if (newMasses.size() != 3) {
+		std::cout << "BELLE_P::setFSmasses(...): ERROR: Number of masses given is not three: " << newMasses.size() << std::endl;
+		return false;
+	}
+	_fsMasses[0] = newMasses[0];
+	_fsMasses[1] = newMasses[1];
+	_fsMasses[2] = newMasses[2];
+	return true;
+}
+
+BELLE_D::BELLE_D(size_t isobarIndex) : angularDependence(std::make_shared<kinematicSignature>(2), "BELLE_D"), _isobarIndex(isobarIndex) {
+        if (isobarIndex != 12 and isobarIndex != 13 and isobarIndex != 23) {
+                std::cout <<  "BELLE_D(...): ERROR: None of the three possible isobar masses match (12, 13 and 23) the given value:" << isobarIndex << std::endl;
+                throw;
+        }
+	_fsMasses = {mPi, mKs, mPi};
+}
+
+std::complex<double> BELLE_D::eval(const std::vector<double> &kin) const {
+        if (kin.size() != _kinSignature->nKin()) {
+                std::cerr << "BELLE_D::eval(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
+                return std::complex<double>(0.,0.);
+        }
+
+        double mD2  = kin[0];
+        double mA2  = 0.;
+        double mB2  = 0.;
+        double mC2  = 0.;
+        double mAB2 = 0.;
+        double mAC2 = 0.;
+        double mBC2 = 0.;
+
+	double sKpiWrong = mD2 + _fsMasses[0]*_fsMasses[0] +  _fsMasses[1]*_fsMasses[1]+ _fsMasses[2]*_fsMasses[2]- kin[1] - kin[2];
+        if (_isobarIndex == 12) { // ((piRight, Ks), piWrong)
+                mA2 = _fsMasses[0]*_fsMasses[0];
+                mB2 = _fsMasses[1]*_fsMasses[1];
+                mC2 = _fsMasses[2]*_fsMasses[2];
+
+                mAB2 = kin[1];
+                mAC2 = kin[2];
+                mBC2 = sKpiWrong;
+        } else if (_isobarIndex == 13) { // ((piWrong, piRight), Ks)
+                mA2 = _fsMasses[2]*_fsMasses[2];
+                mB2 = _fsMasses[0]*_fsMasses[0];
+                mC2 = _fsMasses[1]*_fsMasses[1];
+
+                mAB2 = kin[2];
+                mAC2 = sKpiWrong;
+                mBC2 = kin[1];
+        } else if (_isobarIndex == 23) { // ((Ks, piWrong), piRight)
+                mA2 = _fsMasses[1]*_fsMasses[1];
+                mB2 = _fsMasses[2]*_fsMasses[2];
+                mC2 = _fsMasses[0]*_fsMasses[0];
+
+                mAB2 = sKpiWrong;
+                mAC2 = kin[1];
+                mBC2 = kin[2];
+        }
+	double retVal = mAB2 - 2*mD2 - 2*mC2 + pow(mD2 - mC2,2)/mAB2;
+	retVal       *= mAB2 - 2*mA2 - 2*mB2 + pow(mA2 - mB2,2)/mAB2;
+	retVal       /= -3;
+	retVal       += pow(mBC2 - mAC2 + (mD2 - mC2)*(mA2 - mB2)/mAB2,2);
+	return std::complex<double>(retVal, 0.);
+}
+
+bool BELLE_D::setFSmasses(const std::vector<double> newMasses) {
+        if (newMasses.size() != 3) {
+                std::cout << "BELLE_D::setFSmasses(...): ERROR: Number of masses given is not three: " << newMasses.size() << std::endl;
+                return false;
+        }
+        _fsMasses[0] = newMasses[0];
+        _fsMasses[1] = newMasses[1];
+        _fsMasses[2] = newMasses[2];
+        return true;
 }
 
 

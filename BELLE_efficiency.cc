@@ -1,14 +1,11 @@
 #include "BELLE_efficiency.h"
+#include "constants.h"
 #include <math.h> 
 #include <string>
 #include <iostream>
 #include <fstream>
 
 // // BELLE_D0ToK0Spipi_efficiency_correction.cc
-const double mD0 = 1.86483;
-const double mKs = 0.49761;
-const double mPi = 0.13957;
-
 const double x_min = pow(mKs + mPi, 2);
 const double x_max = pow(mD0 - mPi, 2);
 const double y_min = pow(mPi + mPi, 2);

@@ -31,11 +31,15 @@ ADD_LIBRARY(modelGenerator     SHARED modelGenerator.cc     )
 ADD_LIBRARY(logLikelihood      SHARED logLikelihood.cc      )
 ADD_LIBRARY(efficiencyFunction SHARED efficiencyFunction.cc )
 ADD_LIBRARY(BELLE_efficiency   SHARED BELLE_efficiency.cc )
+ADD_LIBRARY(getBELLEdata       SHARED getBELLEdata.cc )
 
 #set executables
 ADD_EXECUTABLE(p9.exe ppppppppp.cxx )
 ADD_EXECUTABLE(K9.exe KKKKKKKKK.cxx )
 ADD_EXECUTABLE(e9.exe eeeeeeeee.cxx )
+ADD_EXECUTABLE(D9.exe DDDDDDDDD.cxx )
+
+ADD_EXECUTABLE(testBelleEfficiecny.exe testBelleEfficiecny.cxx)
 
 # link libraries
 TARGET_LINK_LIBRARIES(p9.exe massShape          )
@@ -68,8 +72,22 @@ TARGET_LINK_LIBRARIES(e9.exe modelGenerator     )
 TARGET_LINK_LIBRARIES(e9.exe logLikelihood      )
 TARGET_LINK_LIBRARIES(e9.exe efficiencyFunction )
 
+TARGET_LINK_LIBRARIES(D9.exe massShape          )
+TARGET_LINK_LIBRARIES(D9.exe angularDependence  )
+TARGET_LINK_LIBRARIES(D9.exe amplitude          )
+TARGET_LINK_LIBRARIES(D9.exe generator          )
+TARGET_LINK_LIBRARIES(D9.exe integrator         )
+TARGET_LINK_LIBRARIES(D9.exe modelAmplitude     )
+TARGET_LINK_LIBRARIES(D9.exe modelGenerator     )
+TARGET_LINK_LIBRARIES(D9.exe logLikelihood      )
+TARGET_LINK_LIBRARIES(D9.exe efficiencyFunction )
+TARGET_LINK_LIBRARIES(D9.exe getBELLEdata       )
+
+TARGET_LINK_LIBRARIES(efficiencyFunction BELLE_efficiency)
+
 TARGET_LINK_LIBRARIES(amplitude massShape          )
 TARGET_LINK_LIBRARIES(amplitude angularDependence  )
+TARGET_LINK_LIBRARIES(amplitude kinematicSignature )
 TARGET_LINK_LIBRARIES(amplitude kinematicSignature )
 
 TARGET_LINK_LIBRARIES(generator kinematicSignature )
@@ -90,3 +108,7 @@ TARGET_LINK_LIBRARIES(integrator amplitude          )
 TARGET_LINK_LIBRARIES(integrator generator          )
 TARGET_LINK_LIBRARIES(integrator efficiencyFunction )
 
+TARGET_LINK_LIBRARIES(getBELLEdata ${ROOT_LIBS}  )
+
+TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe BELLE_efficiency)
+TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe ${ROOT_LIBS} )
