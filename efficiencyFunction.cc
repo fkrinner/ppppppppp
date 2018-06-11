@@ -1,4 +1,5 @@
 #include"efficiencyFunction.h"
+#include"BELLE_efficiency.h"
 #include<iostream>
 efficiencyFunction::efficiencyFunction() : _kinSignature(std::make_shared<kinematicSignature>(0)) {}
 
@@ -15,4 +16,12 @@ threeParticlPerfectEfficiency::threeParticlPerfectEfficiency (std::shared_ptr<ki
 double threeParticlPerfectEfficiency::call(const std::vector<double>& kin) const {
 	(void) kin;
 	return 1.;
+}
+
+BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency() {
+	_kinSignature = std::make_shared<kinematicSignature>(2);
+}
+
+double BELLE_DtoKpipi_efficiency::call(const std::vector<double>& kin) const {
+	return Efficiency(kin);
 }

@@ -31,10 +31,7 @@ bool integrator::integrate() {
 	for (size_t point = 0; point < _nPoints; ++point) {
 		std::vector<double> kin = _generator->generate();
 		std::vector<std::complex<double> > ampl(nAmpl(), std::complex<double>(0.,0.));
-		bool accepted = false;
-		if (_efficiency->call(kin) > random()) {
-			accepted = true;
-		}
+		double eff = _efficiency->call(kin);
 		size_t countAmp = 0;
 		for (std::shared_ptr<amplitude> a : _amplitudes) {
 			ampl[countAmp] = a->eval(kin);
@@ -43,11 +40,13 @@ bool integrator::integrate() {
 		for (size_t i = 0; i < nAmpl(); ++i) {
 			for (size_t j = 0; j < nAmpl(); ++j) {
 				_integralMatrix[i][j] += std::conj(ampl[i])*ampl[j];
-				if (accepted) {
-					_accCorrIntegralMatrix[i][j] += std::conj(ampl[i])*ampl[j];
-				}
+				_accCorrIntegralMatrix[i][j] += std::conj(ampl[i])*ampl[j]*eff;
 			}
 		}
+		if (point % 1000 == 0) { 
+			std::cout << "#" << point << std::endl;
+		}
+
 	}
 	for (size_t i = 0; i < nAmpl(); ++i) {
 		for (size_t j = 0; j < nAmpl(); ++j) {
@@ -55,6 +54,14 @@ bool integrator::integrate() {
 			_accCorrIntegralMatrix[i][j] /= _nPoints;
 		}
 	}
+	_isIntegrated = true;
+	return true;
+}
+
+bool integrator::loadIntegrals(const std::string& psFileName, const std::string& accFileName) {
+	// Trust the content of the files, as long as the dimensions match
+	_integralMatrix = utils::readComplexMatrixFromTextFile(psFileName, _amplitudes.size());
+	_accCorrIntegralMatrix = utils::readComplexMatrixFromTextFile(accFileName, _amplitudes.size());
 	_isIntegrated = true;
 	return true;
 }
@@ -164,7 +171,7 @@ std::vector<std::vector<double> > integrator::DDtotalIntensity(const std::vector
 	return retVal;
 }
 
-bool integrator::writeToFile(std::string fileName) const {
+bool integrator::writeToFile(std::string fileName, bool accCorr) const {
 	if (not _isIntegrated) {
 		std::cerr << "integrator::writeToFile(...): ERROR: Not integrated yet. Returning empty vector." << std::endl;
 		return false;
@@ -173,7 +180,11 @@ bool integrator::writeToFile(std::string fileName) const {
 	outFile.open (fileName.c_str());
 	for (size_t i = 0; i < nAmpl(); ++i) {
 		for (size_t j = 0; j < nAmpl(); ++j) {
-			outFile << _integralMatrix[i][j] << " ";
+			if (accCorr) {
+				outFile << _accCorrIntegralMatrix[i][j] << " ";
+			} else {
+				outFile << _integralMatrix[i][j] << " ";
+			}
 		}
 		outFile << std::endl;
 	}

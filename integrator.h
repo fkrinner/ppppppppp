@@ -14,6 +14,7 @@ class integrator {
 		integrator(size_t integralPoints, std::shared_ptr<generator> pointGenerator, const std::vector<std::shared_ptr<amplitude> >& amplitudes, std::shared_ptr<efficiencyFunction>& efficiency);
 
 		bool                                             integrate         ();
+		bool                                             loadIntegrals(const std::string& psFileName, const std::string& accFileName);
 		std::vector<std::vector<std::complex<double> > > getIntegralMatrix (bool accCorr = false)                     const;
 		std::pair<bool, std::complex<double> >           element           (size_t i, size_t j, bool accCorr = false) const;
 
@@ -23,7 +24,7 @@ class integrator {
 
 		bool                                isIntegrated ()                     const {return _isIntegrated;}
 		bool                                setNpoints   (size_t n);
-		bool                                writeToFile  (std::string fileName) const;
+		bool                                writeToFile  (std::string fileName, bool accCorr = false) const;
 		size_t                              nAmpl        ()                     const {return _nAmpl;}
 		std::pair<bool, size_t>             getNpoints   ()                     const; 
 		std::pair<bool, std::string>        getWaveName  (size_t i)             const;

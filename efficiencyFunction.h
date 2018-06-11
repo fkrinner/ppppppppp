@@ -23,4 +23,11 @@ class threeParticlPerfectEfficiency : public efficiencyFunction {
 		virtual double call(const std::vector<double>& kin)          const;
 		
 };
+
+class BELLE_DtoKpipi_efficiency : public efficiencyFunction {
+	public: // Kineamtic variable are {m_D^2, m_{Kpi(RS}^2, m_{pipi}^2}
+		BELLE_DtoKpipi_efficiency ();
+
+		virtual double call(const std::vector<double>& kin)          const;
+};
 #endif//EFFICIENCYFUNCTION__
