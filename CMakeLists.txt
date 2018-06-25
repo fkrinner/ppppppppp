@@ -7,14 +7,16 @@ SET(CMAKE_MODULE_PATH  ${PROJECT_SOURCE_DIR} )
 FIND_PACKAGE(Nlopt)
 FIND_PACKAGE(ROOT 5.34.20 REQUIRED)
 
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -O3 -fopenmp")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -O3")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -O3 -fopenmp")
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -O3")
 
 SET( INCLUDE_DIRS 
     ${INCLUDE_DIRS}
     ${Nlopt_INCLUDE_DIR} 	
     ${PROJECT_BINARY_DIR}  
     ${PROJECT_SOURCE_DIR}  
+    $ENV{FABILI_INCLUDE_DIR}
+    $ENV{EIGEN_INCLUDE_DIR}
 )
 
 INCLUDE_DIRECTORIES( ${INCLUDE_DIRS} )
@@ -30,8 +32,10 @@ ADD_LIBRARY(modelAmplitude     SHARED modelAmplitude.cc     )
 ADD_LIBRARY(modelGenerator     SHARED modelGenerator.cc     )
 ADD_LIBRARY(logLikelihood      SHARED logLikelihood.cc      )
 ADD_LIBRARY(efficiencyFunction SHARED efficiencyFunction.cc )
-ADD_LIBRARY(BELLE_efficiency   SHARED BELLE_efficiency.cc )
-ADD_LIBRARY(getBELLEdata       SHARED getBELLEdata.cc )
+ADD_LIBRARY(BELLE_efficiency   SHARED BELLE_efficiency.cc   )
+ADD_LIBRARY(getBELLEdata       SHARED getBELLEdata.cc       )
+ADD_LIBRARY(fabiliLL           SHARED fabiliLL.cc           )
+ADD_LIBRARY(fabiliLL_openMP    SHARED fabiliLL_openMP.cc    )
 
 #set executables
 ADD_EXECUTABLE(p9.exe ppppppppp.cxx )
@@ -51,6 +55,7 @@ TARGET_LINK_LIBRARIES(p9.exe modelAmplitude     )
 TARGET_LINK_LIBRARIES(p9.exe modelGenerator     )
 TARGET_LINK_LIBRARIES(p9.exe logLikelihood      )
 TARGET_LINK_LIBRARIES(p9.exe efficiencyFunction )
+TARGET_LINK_LIBRARIES(p9.exe ${ROOT_LIBS} )
 
 TARGET_LINK_LIBRARIES(K9.exe massShape          )
 TARGET_LINK_LIBRARIES(K9.exe angularDependence  )
@@ -82,6 +87,9 @@ TARGET_LINK_LIBRARIES(D9.exe modelGenerator     )
 TARGET_LINK_LIBRARIES(D9.exe logLikelihood      )
 TARGET_LINK_LIBRARIES(D9.exe efficiencyFunction )
 TARGET_LINK_LIBRARIES(D9.exe getBELLEdata       )
+TARGET_LINK_LIBRARIES(D9.exe fabiliLL           )
+TARGET_LINK_LIBRARIES(D9.exe fabiliLL_openMP    )
+TARGET_LINK_LIBRARIES(D9.exe /nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/Fabili/build/libfabili.so )
 
 TARGET_LINK_LIBRARIES(efficiencyFunction BELLE_efficiency)
 
@@ -112,3 +120,7 @@ TARGET_LINK_LIBRARIES(getBELLEdata ${ROOT_LIBS}  )
 
 TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe BELLE_efficiency)
 TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe ${ROOT_LIBS} )
+
+TARGET_LINK_LIBRARIES(fabiliLL logLikelihood )
+
+TARGET_LINK_LIBRARIES(fabiliLL_openMP logLikelihood )

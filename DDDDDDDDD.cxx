@@ -16,18 +16,26 @@
 #include"logLikelihood.h"
 #include"constants.h"
 #include"getBELLEdata.h"
+#include"fabiliLL.h"
+#include"fabiliLL_openMP.h"
+#include"fabili.h"
 
-int main() {
+std::complex<double> BW(const double& m2, const double&  m0, const double& G0) {
+	return std::complex<double>(m0*G0,0.)/std::complex<double>(m0*m0 - m2, -m0*G0);
+}
+
+int main(int argc, char *argv[]) {
+	(void) argv;
+
 	size_t seed = size_t( time(NULL) );
 	std::cout << "Seed: " << seed << std::endl;
 	srand(seed);
 
 	const int softpionSign = 0;
 
-	const size_t nTries         = 10;
 	const size_t integralPoints = 300000*10*10; // Ten times data set (ecicciency is 0.1)
 
-	std::cout << nTries << " tries; " << integralPoints << " integral points" << std::endl;
+	std::cout << integralPoints << " integral points" << std::endl;
 	std::vector<double> fsMasses = {mPi, mKs, mPi};
 
 	std::shared_ptr<BELLE_S> S12 = std::make_shared<BELLE_S>(12);	
@@ -119,7 +127,7 @@ int main() {
 	}
 
 	std::cout << amplitudes.size() << " waves in the model" << std::endl;
-
+	size_t nAmpl = amplitudes.size();
 	std::shared_ptr<threeParticleMassGenerator> gen = std::make_shared<threeParticleMassGenerator>(mD0, fsMasses, S12->kinSignature());
 	std::shared_ptr<efficiencyFunction> efficiency  = std::make_shared<BELLE_DtoKpipi_efficiency>();
 	std::shared_ptr<integrator> integral = std::make_shared<integrator>(integralPoints, gen, amplitudes, efficiency);
@@ -128,41 +136,152 @@ int main() {
 //	integral->integrate();
 //	std::cout << "Finished integration" << std::endl;
 
-	if (!integral->loadIntegrals("ps_integral.dat", "ac_integral.dat")) {
+	if (!integral->loadIntegrals("ps_integral_corr.dat", "ac_integral_corr.dat")) {
 		std::cout << "Could not load integrals" << std::endl;
 		return 1;
 	}
 	std::vector<std::vector<double> > dataPoints = getBELLEevents("./BELLE_data.root", softpionSign);
-	logLikelihood ll(amplitudes, integral);
-	ll.loadDataPoints(dataPoints);
-	ll.setExtended(true);
-	const size_t nData = dataPoints.size();
+	size_t nData = pow(dataPoints.size(),.5);
+/*	const size_t nData = dataPoints.size();
 	const size_t nAmpl = amplitudes.size();
-	std::vector<std::complex<double> > startValues(nAmpl);
-	for (size_t a = 0; a < nAmpl; ++a) {
-		startValues[a] = std::complex<double>(pow(random()*nData,.5), pow(random()*nData,.5));
+*/	std::vector<std::complex<double> > startValues(nAmpl);
+	
+	// Only crude estimates for the resonance parameters to have nice start vlaues with continuous phase motion
+
+	const double mK_0 = 0.824;
+	const double GK_0 = 0.478;
+	const double mK_1 = 0.895;
+	const double GK_1 = 0.047;
+	const double mK_2 = 1.430;
+	const double GK_2 = 0.109;
+
+	const double mf_0 = 0.500;
+	const double Gf_0 = 0.500;
+	const double mRho = 0.77526;
+	const double Grho = 0.1491;
+	const double mf_2 = 1.2755;
+	const double Gf_2 = 0.1867;
+
+	size_t count = 0;
+	double m2;
+	std::complex<double> coeff(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningKpi.size()-1;++b) {
+		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mK_0, GK_0);
+		++count;
 	}
-	std::cout << "Start fitting" << std::endl;
-	std::pair<double, std::vector<std::complex<double> > > retVal = ll.fitNlopt(startValues);
-	std::cout << "Finished" << std::endl;
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningKpi.size()-1;++b) {
+		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mK_1, GK_1);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningKpi.size()-1;++b) {
+		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mK_2, GK_2);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningKpi.size()-1;++b) {
+		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mK_0, GK_0);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningKpi.size()-1;++b) {
+		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mK_1, GK_1);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningKpi.size()-1;++b) {
+		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mK_2, GK_2);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningPiPi.size()-1;++b) {
+		m2 = (binningPiPi[b] + binningPiPi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mf_0, Gf_0);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningPiPi.size()-1;++b) {
+		m2 = (binningPiPi[b] + binningPiPi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mRho, Grho);
+		++count;
+	}
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	for (size_t b = 0; b < binningPiPi.size()-1;++b) {
+		m2 = (binningPiPi[b] + binningPiPi[b+1])/2;
+		startValues[count] = coeff*BW(m2, mf_2, Gf_2);
+		++count;
+	}
+	if (count != nAmpl) {
+		std::cout << "Number of initialized start values does not match " << count << " != " << nAmpl;
+		return 1;
+	}
+	std::cout << "Start fitting " << argc << std::endl;
+
 	std::ofstream outFile;
-	std::string outFileName = std::string("./BELLEfit_pi") + std::to_string(softpionSign) + std::string("_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(retVal.first) + std::string(".dat");
-	outFile.open(outFileName.c_str());
-	for (std::complex<double>& amp : retVal.second) {
-		outFile << amp << std::endl;
-	}
-	outFile.close();
 
-	std::vector<std::vector<double> > hessian = ll.DDeval(retVal.second);
-	outFileName = std::string("./BELLEfit_hessian_") + std::to_string(seed) + std::string(".dat");
-	outFile.open(outFileName.c_str());
-	for (size_t i = 0; i < 2*ll.nAmpl(); ++i) {
-	for (size_t j = 0; j < 2*ll.nAmpl(); ++j) {
-			outFile << hessian[i][j] << " ";
+//	outFile.open("startValueTest.deleteMe");
+//	for (size_t a = 0; a < startValues.size(); ++a) {
+//		outFile << a << " " << startValues[a].real() << " " << startValues[a].imag() << std::endl;
+//	}
+//	outFile.close();
+
+	bool parallel = false;
+	if (argc > 1) {
+		parallel = true;
+	}
+
+	if (parallel) {
+		std::cout << "Running in parallel mode (results not written so far)" << std::endl;
+//		std::shared_ptr<fabiliLL> ll = std::make_shared<fabiliLL>(amplitudes, integral);
+		std::shared_ptr<fabiliLL_openMP> ll = std::make_shared<fabiliLL_openMP>(amplitudes, integral);
+		ll->loadDataPoints(dataPoints);
+		ll->setExtended(true);
+
+		fabili ff(ll);
+		ff.setStepSize(.1);
+		std::vector<double> ppp;
+		for (std::complex<double>& a : startValues) {
+			ppp.push_back(a.real());
+			ppp.push_back(a.imag());
 		}
-		outFile << std::endl;
-	}
-	outFile.close();
 
+		ff.minimize(ppp);
+
+		std::cout << "Finished" << std::endl;
+	} else {
+		std::cout << "Running in normal mode" << std::endl;
+
+		logLikelihood ll(amplitudes, integral);
+		ll.loadDataPoints(dataPoints);
+		ll.setExtended(true);
+
+		std::pair<double, std::vector<std::complex<double> > > retVal = ll.fitNlopt(startValues);
+
+
+		std::string outFileName = std::string("./BELLEfit_pi") + std::to_string(softpionSign) + std::string("_nsv_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(retVal.first) + std::string(".dat");
+		outFile.open(outFileName.c_str());
+		for (std::complex<double>& amp : retVal.second) {
+			outFile << amp << std::endl;
+		}
+		outFile.close();
+
+		std::vector<std::vector<double> > hessian = ll.DDeval(retVal.second);
+		outFileName = std::string("./BELLEfit_hessian_") + std::to_string(seed) + std::string(".dat");
+		outFile.open(outFileName.c_str());
+		for (size_t i = 0; i < 2*ll.nAmpl(); ++i) {
+		for (size_t j = 0; j < 2*ll.nAmpl(); ++j) {
+				outFile << hessian[i][j] << " ";
+			}
+			outFile << std::endl;
+		}
+		outFile.close();
+	}
 	return 0;
 }

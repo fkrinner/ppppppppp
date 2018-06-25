@@ -15,6 +15,44 @@
 #include"utils.h"
 #include"logLikelihood.h"
 
+#include"constants.h"
+
+#include"TFile.h"
+#include"TH1D.h"
+#include"TH2D.h"
+
+std::complex<double> getF2amplitude(const double& m3Pi) {
+	TFile* inFile  = new TFile("/nfs/mds/user/fkrinner/extensiveFreedIsobarStudies/std11_withIntegral.root");
+	TH1D* realHist = (TH1D*)inFile->Get("0-+0+f2PiD_0_real");
+	TH1D* imagHist = (TH1D*)inFile->Get("0-+0+f2PiD_0_imag");
+	int nBin = realHist->GetXaxis()->FindBin(m3Pi);
+	std::complex<double> retVal(realHist->GetBinContent(nBin), imagHist->GetBinContent(nBin));
+	inFile->Close();
+	return retVal;
+}
+
+std::vector<std::complex<double> > getFreedAmplitudes(const double& m3Pi, size_t waveSpin = 0) {
+	TFile* inFile;
+	if (waveSpin ==0) {
+		inFile  = new TFile("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/fkrinner/trunk/massDependentFit/scripts/zeroModeFitter_2D/0mp_0-+0+[pi,pi]0++PiS.root");
+	} else if (waveSpin == 1) {
+		inFile  = new TFile("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/fkrinner/trunk/massDependentFit/scripts/zeroModeFitter_2D/0mp_0-+0+[pi,pi]1--PiP.root");
+	} else {
+		std::cout << "Invalid spin: " << waveSpin << " (has to be 0 or 1)" << std::endl;
+		throw;
+	}
+	TH2D* realHist = (TH2D*)inFile->Get("real0");
+	TH2D* imagHist = (TH2D*)inFile->Get("imag0");
+	int nBin = realHist->GetXaxis()->FindBin(m3Pi);
+	std::vector<std::complex<double> > retVal;
+	for (int b =0; b < realHist->GetNbinsY(); ++b) {
+		double width = realHist->GetYaxis()->GetBinWidth(b+1);
+		retVal.push_back(std::complex<double>(realHist->GetBinContent(nBin, b+1), imagHist->GetBinContent(nBin, b+1))*std::pow(width,.5));
+	}
+	inFile->Close();
+	return retVal;
+}
+
 int main() {
 	size_t seed = size_t( time(NULL) );
 	std::cout << "Seed: " << seed << std::endl;
@@ -22,9 +60,7 @@ int main() {
 	srand(seed);
 //	utils::opening();
 
-	const double mPi =  .13957018;
-//	const double mD0 = 1.86484;
-	const double mDp = 1.8696200;
+	const double mDp = 1.8;
 
 	const size_t nTries         = 10;
 	const size_t nPoints        = 1000000;
@@ -33,12 +69,12 @@ int main() {
 	const bool bose             = true;
 	const bool extended         = true;
 
-	const bool writeGenerated   = false;
+	const bool writeGenerated   = true;
 	const bool writeAllAttempts = false;
 
 	const bool useF0   = true;
 	const bool useRho  = true;
-	const bool useF2   = false;
+	const bool useF2   = true;
 
 	const bool freeF0  = true;
 	const bool freeRho = true;
@@ -82,16 +118,43 @@ int main() {
 
 	std::shared_ptr<efficiencyFunction> efficiency = std::make_shared<threeParticlPerfectEfficiency>(Swave->kinSignature());
 
+	std::vector<double> binningF0 = { .278,  .320,  .360,  .400,  .440,  .480,  .520,  .560,  .600,
+                             .640,  .680,  .720,  .760,  .800,  .840,  .880,  .920,  .930,
+                             .940,  .950,  .960,  .970,  .980,  .990, 1.000, 1.010, 1.020,
+                            1.030, 1.040, 1.050, 1.060, 1.070, 1.080, 1.120, 1.160,
+                            1.200, 1.240, 1.280, 1.320, 1.360, 1.400, 1.440, 1.480,
+                            1.520, 1.560, 1.600, 1.640, 1.680, 1.720, 1.760};
+	std::vector<double> binningRho = {0.278,0.32, 0.36, 0.4,  0.44, 0.48, 0.52, 0.56, 0.6,  0.64, 0.68, 0.7,  0.72,
+                             0.74, 0.76, 0.78, 0.8,  0.82, 0.84, 0.86, 0.88, 0.9,  0.92, 0.96, 1.0,  1.04,
+                             1.08, 1.12, 1.16, 1.2,  1.24, 1.28, 1.32, 1.36, 1.4,  1.44, 1.48, 1.52, 1.56,
+                             1.6,  1.64, 1.68, 1.72, 1.76};
+	std::vector<double> binningF2 = {0.278,0.32, 0.36, 0.4,  0.44, 0.48, 0.52, 0.56, 0.6,  0.64, 0.68, 
+					0.72, 0.76, 0.8,  0.84, 0.88, 0.92, 0.96, 1.0,  1.04, 1.08, 1.12, 
+					1.16, 1.18, 1.2,  1.22, 1.24, 1.26, 1.28, 1.30, 1.32, 1.34, 1.36, 
+					1.38, 1.4,  1.44, 1.48, 1.52, 1.56, 1.6,  1.64, 1.68, 1.72, 1.76 };
+
+
 	std::vector<std::shared_ptr<amplitude> > amplitudes;
 	if (useF2) {
 		amplitudes.push_back(Dwave);
 	}
 	if (useRho) {
-		amplitudes.push_back(Pwave);
-//		amplitudes.push_back(PwaveP);
+//		amplitudes.push_back(Pwave);
+		for (size_t b = 0; b < binningRho.size()-1; ++b) {
+			std::shared_ptr<stepLike> step  = std::make_shared<stepLike>(binningRho[b],binningRho[b+1]);
+			std::shared_ptr<threeParticleIsobaricAmplitude> stepAmpl = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp1mmPiP" + std::to_string(b) , step,  PangleNR);
+			amplitudes.push_back(stepAmpl);
+		}
 	}
+	const size_t fZeroStart = amplitudes.size();
 	if (useF0) {
-		amplitudes.push_back(Swave);
+//		amplitudes.push_back(Swave);
+		for (size_t b = 0; b < binningF0.size()-1; ++b) {
+			std::shared_ptr<stepLike> step  = std::make_shared<stepLike>(binningF0[b],binningF0[b+1]);
+			std::shared_ptr<threeParticleIsobaricAmplitude> stepAmpl = std::make_shared<threeParticleIsobaricAmplitude>(bose, "0mp0ppPiS" + std::to_string(b) , step,  SangleNR);
+			amplitudes.push_back(stepAmpl);
+		}
+
 	}
 
 	const bool freedIsobar = freeF0 or freeRho or freeF2;
@@ -105,7 +168,6 @@ int main() {
 //	integral->writeToFile("./integralSmall.dat");
 
 	std::vector<double> normalizations;
-	std::vector<std::complex<double> > transitionAmplitudes;
 	for (size_t a = 0; a < nAmpl; ++a) {
 		std::pair<bool, std::complex<double> > diag = integral->element(a,a);
 		if (not diag.first) {
@@ -113,14 +175,24 @@ int main() {
 			return 1;
 		}
 		normalizations.push_back(1./pow(diag.second.real(), .5));
-		transitionAmplitudes.push_back(std::complex<double>(utils::random2(), utils::random2()));
 	}
-	std::vector<std::complex<double> > taToSet = {std::complex<double>( 2.,0.),std::complex<double>( 1.,1.), std::complex<double>(-1.,1.5), std::complex<double>(1.,-1.)};
-//	std::vector<std::complex<double> > taToSet = {std::complex<double>( 10.,0.), std::complex<double>(-1.,0.), std::complex<double>(1.,-1.)};
+	std::cout << 1 << std::endl;
+	std::vector<std::complex<double> > transitionAmplitudes = {getF2amplitude(mDp)};
+	std::cout << 2 << std::endl;
+	std::vector<std::complex<double> > rhoTAs = getFreedAmplitudes(mDp, 1);
+	std::cout << 3 << std::endl;
+	std::vector<std::complex<double> > f0TAs  = getFreedAmplitudes(mDp, 0);
+	std::cout << 4 << std::endl;
+	std::cout << binningRho.size()-1 << " --- " << rhoTAs.size() << std::endl;
+	for (size_t b=0;b<binningRho.size()-1;++b) {
+		transitionAmplitudes.push_back(rhoTAs[b]);
+	}
+	std::cout << binningF0.size()-1 << " --- " << f0TAs.size() << std::endl;
+	for (size_t b=0;b<binningF0.size()-1;++b) {
+		transitionAmplitudes.push_back(f0TAs[b]);
+	}
 
-	for (size_t i = 0; i < std::min(taToSet.size(), transitionAmplitudes.size()); ++i) {
-		transitionAmplitudes[i] = taToSet[i];
-	}
+	std::cout << transitionAmplitudes.size() << " ::: " << amplitudes.size() << " ::: " << normalizations.size() << std::endl;
 
 	std::shared_ptr<modelAmplitude> model = std::make_shared<modelAmplitude>(transitionAmplitudes, amplitudes, normalizations);
 
@@ -131,7 +203,7 @@ int main() {
 
 	if (writeGenerated) {
 		const double s23base   = mDp*mDp + 3*mPi*mPi;
-		outFile.open("./largeErrorStudy_generated.dat");
+		outFile.open("./dalitz.dat");
 		for (std::vector<double> vv : generatedPoints) {
 			const double s12 = vv[1];
 			const double s13 = vv[2];
@@ -141,6 +213,11 @@ int main() {
 		outFile.close();
 	}
 
+	return 0;
+
+	size_t lol = fZeroStart;
+	lol *= lol;
+
 //	const double width = .04;
 	const double width = .05;
 	
@@ -149,34 +226,17 @@ int main() {
 		binning.push_back(binning[binning.size()-1] + width);
 	}
 
-	std::vector<double> binningF0 = { .278,  .320,  .360,  .400,  .440,  .480,  .520,  .560,  .600,
-                             .640,  .680,  .720,  .760,  .800,  .840,  .880,  .920,  .930,
-                             .940,  .950,  .960,  .970,  .980,  .990, 1.000, 1.010, 1.020,
-                            1.030, 1.040, 1.050, 1.060, 1.070, 1.080, 1.120, 1.160,
-                            1.200, 1.240, 1.280, 1.320, 1.360, 1.400, 1.440, 1.480,
-                            1.520, 1.560, 1.600, 1.640, 1.680, 1.720, 1.760};
-
 	binningF0 = binning;
 
 	for (size_t i = 0; i< binningF0.size(); ++i) {
 		binningF0[i] = binningF0[i]*binningF0[i];
 	}
 
-	std::vector<double> binningRho = {0.278,0.32, 0.36, 0.4,  0.44, 0.48, 0.52, 0.56, 0.6,  0.64, 0.68, 0.7,  0.72,
-                             0.74, 0.76, 0.78, 0.8,  0.82, 0.84, 0.86, 0.88, 0.9,  0.92, 0.96, 1.0,  1.04,
-                             1.08, 1.12, 1.16, 1.2,  1.24, 1.28, 1.32, 1.36, 1.4,  1.44, 1.48, 1.52, 1.56,
-                             1.6,  1.64, 1.68, 1.72, 1.76};
-
 	binningRho = binning;
 
 	for (size_t i = 0; i< binningRho.size(); ++i) {
 		binningRho[i] = binningRho[i]*binningRho[i];
 	}
-
-	std::vector<double> binningF2 = {0.278,0.32, 0.36, 0.4,  0.44, 0.48, 0.52, 0.56, 0.6,  0.64, 0.68, 
-					0.72, 0.76, 0.8,  0.84, 0.88, 0.92, 0.96, 1.0,  1.04, 1.08, 1.12, 
-					1.16, 1.18, 1.2,  1.22, 1.24, 1.26, 1.28, 1.30, 1.32, 1.34, 1.36, 
-					1.38, 1.4,  1.44, 1.48, 1.52, 1.56, 1.6,  1.64, 1.68, 1.72, 1.76 };
 
 	binningF2 = binning;
 	for (size_t i = 0; i < binningF2.size(); ++i) {

@@ -51,7 +51,7 @@ class logLikelihood : public logLikelihoodBase {
 
 		bool                                                   loadDataPoints (const std::vector<std::vector<double> >& dataPoints) override;
 
-	private:
+	protected:
 		std::vector<std::shared_ptr<amplitude> >         _amplitudes;
 		std::vector<std::vector<std::complex<double> > > _points;
 };
