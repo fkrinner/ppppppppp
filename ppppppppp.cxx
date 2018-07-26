@@ -60,7 +60,7 @@ int main() {
 	srand(seed);
 //	utils::opening();
 
-	const double mDp = 1.8;
+	const double mDp = 1.3;
 
 	const size_t nTries         = 10;
 	const size_t nPoints        = 1000000;
@@ -193,6 +193,13 @@ int main() {
 	}
 
 	std::cout << transitionAmplitudes.size() << " ::: " << amplitudes.size() << " ::: " << normalizations.size() << std::endl;
+	for (size_t i = 0; i< normalizations.size(); ++i) {
+		std::cout << normalizations[i] << "||" << std::endl;
+		if (isinf(normalizations[i])) {
+			std::cout << "inf norm" << std::endl;
+			normalizations[i] =0.;
+		}
+	}
 
 	std::shared_ptr<modelAmplitude> model = std::make_shared<modelAmplitude>(transitionAmplitudes, amplitudes, normalizations);
 
@@ -203,7 +210,7 @@ int main() {
 
 	if (writeGenerated) {
 		const double s23base   = mDp*mDp + 3*mPi*mPi;
-		outFile.open("./dalitz.dat");
+		outFile.open("./dalitz_1.3.dat");
 		for (std::vector<double> vv : generatedPoints) {
 			const double s12 = vv[1];
 			const double s13 = vv[2];

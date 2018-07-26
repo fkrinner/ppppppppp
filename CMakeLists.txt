@@ -42,6 +42,7 @@ ADD_EXECUTABLE(p9.exe ppppppppp.cxx )
 ADD_EXECUTABLE(K9.exe KKKKKKKKK.cxx )
 ADD_EXECUTABLE(e9.exe eeeeeeeee.cxx )
 ADD_EXECUTABLE(D9.exe DDDDDDDDD.cxx )
+ADD_EXECUTABLE(D6.exe DDDDDD.cxx )
 
 ADD_EXECUTABLE(testBelleEfficiecny.exe testBelleEfficiecny.cxx)
 
@@ -91,6 +92,20 @@ TARGET_LINK_LIBRARIES(D9.exe fabiliLL           )
 TARGET_LINK_LIBRARIES(D9.exe fabiliLL_openMP    )
 TARGET_LINK_LIBRARIES(D9.exe /nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/Fabili/build/libfabili.so )
 
+TARGET_LINK_LIBRARIES(D6.exe massShape          )
+TARGET_LINK_LIBRARIES(D6.exe angularDependence  )
+TARGET_LINK_LIBRARIES(D6.exe amplitude          )
+TARGET_LINK_LIBRARIES(D6.exe generator          )
+TARGET_LINK_LIBRARIES(D6.exe integrator         )
+TARGET_LINK_LIBRARIES(D6.exe modelAmplitude     )
+TARGET_LINK_LIBRARIES(D6.exe modelGenerator     )
+TARGET_LINK_LIBRARIES(D6.exe logLikelihood      )
+TARGET_LINK_LIBRARIES(D6.exe efficiencyFunction )
+TARGET_LINK_LIBRARIES(D6.exe getBELLEdata       )
+TARGET_LINK_LIBRARIES(D6.exe fabiliLL           )
+TARGET_LINK_LIBRARIES(D6.exe fabiliLL_openMP    )
+TARGET_LINK_LIBRARIES(D6.exe /nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/Fabili/build/libfabili.so )
+
 TARGET_LINK_LIBRARIES(efficiencyFunction BELLE_efficiency)
 
 TARGET_LINK_LIBRARIES(amplitude massShape          )
@@ -120,6 +135,7 @@ TARGET_LINK_LIBRARIES(getBELLEdata ${ROOT_LIBS}  )
 
 TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe BELLE_efficiency)
 TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe ${ROOT_LIBS} )
+TARGET_LINK_LIBRArIES(testBelleEfficiecny.exe getBELLEdata )
 
 TARGET_LINK_LIBRARIES(fabiliLL logLikelihood )
 

@@ -29,5 +29,11 @@ class BELLE_DtoKpipi_efficiency : public efficiencyFunction {
 		BELLE_DtoKpipi_efficiency ();
 
 		virtual double call(const std::vector<double>& kin)          const;
+
+		bool setMpipiCosTCut(const double minM2Pi, const double maxAbsCosT) {_minM2Pisquared=minM2Pi*minM2Pi; _maxAbsCosT = maxAbsCosT; return true;}
+	private:
+		double _minM2Pisquared;  // events with m2Pi <  _minM2Pi will be cut, if their |cosT| is bigger than _maxAbsCost (store the square, however)
+		double _maxAbsCosT;      // events with bigger |cosT| > _maxAbsCost will be cut, if their m2Pi is smaller than _minM2Pi
+		
 };
 #endif//EFFICIENCYFUNCTION__

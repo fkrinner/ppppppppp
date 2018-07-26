@@ -29,8 +29,8 @@ int main(int argc, char *argv[]) {
 
 	size_t seed = size_t( time(NULL) );
 	std::cout << "Seed: " << seed << std::endl;
-	srand(seed);
 
+	srand(seed);
 	const int softpionSign = 0;
 
 	const size_t integralPoints = 300000*10*10; // Ten times data set (ecicciency is 0.1)
@@ -38,105 +38,167 @@ int main(int argc, char *argv[]) {
 	std::cout << integralPoints << " integral points" << std::endl;
 	std::vector<double> fsMasses = {mPi, mKs, mPi};
 
-	std::shared_ptr<BELLE_S> S12 = std::make_shared<BELLE_S>(12);	
-	std::shared_ptr<BELLE_S> S13 = std::make_shared<BELLE_S>(13);	
-	std::shared_ptr<BELLE_S> S23 = std::make_shared<BELLE_S>(23);	
+	std::shared_ptr<BELLE_S> S12 = std::make_shared<BELLE_S>(12);
+	std::shared_ptr<BELLE_S> S13 = std::make_shared<BELLE_S>(13);
+	std::shared_ptr<BELLE_S> S23 = std::make_shared<BELLE_S>(23);
 
-	std::shared_ptr<BELLE_P> P12 = std::make_shared<BELLE_P>(12);	
-	std::shared_ptr<BELLE_P> P13 = std::make_shared<BELLE_P>(13);	
-	std::shared_ptr<BELLE_P> P23 = std::make_shared<BELLE_P>(23);	
+	std::shared_ptr<BELLE_P> P12 = std::make_shared<BELLE_P>(12);
+	std::shared_ptr<BELLE_P> P13 = std::make_shared<BELLE_P>(13);
+	std::shared_ptr<BELLE_P> P23 = std::make_shared<BELLE_P>(23);
 
-	std::shared_ptr<BELLE_D> D12 = std::make_shared<BELLE_D>(12);	
-	std::shared_ptr<BELLE_D> D13 = std::make_shared<BELLE_D>(13);	
-	std::shared_ptr<BELLE_D> D23 = std::make_shared<BELLE_D>(23);	
-	
+	std::shared_ptr<BELLE_D> D12 = std::make_shared<BELLE_D>(12);
+	std::shared_ptr<BELLE_D> D13 = std::make_shared<BELLE_D>(13);
+	std::shared_ptr<BELLE_D> D23 = std::make_shared<BELLE_D>(23);
+
 	const double binWidth = 0.04;
 
-	double m = mPi+ mKs;	
-	std::vector<double> binningKpi = {m*m};
+	double m = mPi+ mKs;
+	std::vector<double> binningKpiS = {m*m};
 	while (m < mD0 - mPi) {
-		m += binWidth;
-		binningKpi.push_back(m*m);
-	};
+		if (false) {
+			m += binWidth/2;
+		} else {
+			m += binWidth;
+		}
+		binningKpiS.push_back(m*m);
+	}
 
-	m = 2*mPi;	
-	std::vector<double> binningPiPi = {m*m};
+	m = mPi+ mKs;
+	std::vector<double> binningKpiP = {m*m};
+	while (m < mD0 - mPi) {
+		if (m > .789 and m < .999) {
+			m += binWidth/4;
+		} else {
+			m += binWidth;
+		}
+		binningKpiP.push_back(m*m);
+	}
+
+	m = mPi+ mKs;
+	std::vector<double> binningKpiD = {m*m};
+	while (m < mD0 - mPi) {
+		if (m > 1.329 and m < 1.529) {
+			m += binWidth/2;
+		} else {
+			m += binWidth;
+		}
+		binningKpiD.push_back(m*m);
+	}
+
+	m = 2*mPi;
+	std::vector<double> binningPiPiS = {m*m};
 	while (m < mD0 - mKs) {
-		m += binWidth;
-		binningPiPi.push_back(m*m);
-	};
+		if (m > .919 && m < 1.079) {
+			m += binWidth/4;
+		} else {
+			m += binWidth;
+		}
+		binningPiPiS.push_back(m*m);
+	}
+
+	m = 2*mPi;
+	std::vector<double> binningPiPiP = {m*m};
+	while (m < mD0 - mKs) {
+		if (m > .679 && m < .919) {
+			m += binWidth/2;
+		} else {
+			m += binWidth;
+		}
+		binningPiPiP.push_back(m*m);
+	}
+
+	m = 2*mPi;
+	std::vector<double> binningPiPiD = {m*m};
+	while (m < mD0 - mKs) {
+		if (m > 1.159 && m < 1.39) {
+			m += binWidth/2;
+		} else {
+			m += binWidth;
+		}
+		binningPiPiD.push_back(m*m);
+	}
 
 	std::vector<std::shared_ptr<amplitude> > amplitudes = {};
-
-
 // - - - - - - - K piRight S-wave
-	for (size_t b = 0; b < binningKpi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpi[b], binningKpi[b+1]);
+	for (size_t b = 0; b < binningKpiS.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiS[b], binningKpiS[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(12, std::string("KpiRight[") + std::to_string(b) + std::string("]PiS"), step, S12, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - K piRight P-wave
-	for (size_t b = 0; b < binningKpi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpi[b], binningKpi[b+1]);
+	for (size_t b = 0; b < binningKpiP.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiP[b], binningKpiP[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(12, std::string("KpiRight[") + std::to_string(b) + std::string("]PiP"), step, P12, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - K piRight D-wave
-	for (size_t b = 0; b < binningKpi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpi[b], binningKpi[b+1]);
+	for (size_t b = 0; b < binningKpiD.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiD[b], binningKpiD[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(12, std::string("KpiRight[") + std::to_string(b) + std::string("]PiD"), step, D12, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // ===========================================
 // - - - - - - - K piWrong S-wave
-	for (size_t b = 0; b < binningKpi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpi[b], binningKpi[b+1]);
+	for (size_t b = 0; b < binningKpiS.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiS[b], binningKpiS[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(23, std::string("KpiWrong[") + std::to_string(b) + std::string("]PiS"), step, S23, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - K piWrong P-wave
-	for (size_t b = 0; b < binningKpi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpi[b], binningKpi[b+1]);
+	for (size_t b = 0; b < binningKpiP.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiP[b], binningKpiP[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(23, std::string("KpiWrong[") + std::to_string(b) + std::string("]PiP"), step, P23, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - K piRight D-wave
-	for (size_t b = 0; b < binningKpi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpi[b], binningKpi[b+1]);
+	for (size_t b = 0; b < binningKpiD.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiD[b], binningKpiD[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(23, std::string("KpiWrong[") + std::to_string(b) + std::string("]PiD"), step, D23, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // ============================================
 // - - - - - - - pi pi S-wave
-	for (size_t b = 0; b < binningPiPi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPi[b], binningPiPi[b+1]);
+	for (size_t b = 0; b < binningPiPiS.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPiS[b], binningPiPiS[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(13, std::string("piPi[") + std::to_string(b) + std::string("]KS"), step, S13, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - pi pi P-wave
-	for (size_t b = 0; b < binningPiPi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPi[b], binningPiPi[b+1]);
+	for (size_t b = 0; b < binningPiPiP.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPiP[b], binningPiPiP[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(13, std::string("piPi[") + std::to_string(b) + std::string("]KP"), step, P13, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - pi pi D-wave
-	for (size_t b = 0; b < binningPiPi.size() - 1; ++b) {
-		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPi[b], binningPiPi[b+1]);
+	for (size_t b = 0; b < binningPiPiD.size() - 1; ++b) {
+		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPiD[b], binningPiPiD[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(13, std::string("piPi[") + std::to_string(b) + std::string("]KD"), step, D13, fsMasses);
 		amplitudes.push_back(stepWave);
 	}
 
 	std::cout << amplitudes.size() << " waves in the model" << std::endl;
-	size_t nAmpl = amplitudes.size();
+	size_t nAmpl                                    = amplitudes.size();
 	std::shared_ptr<threeParticleMassGenerator> gen = std::make_shared<threeParticleMassGenerator>(mD0, fsMasses, S12->kinSignature());
 	std::shared_ptr<efficiencyFunction> efficiency  = std::make_shared<BELLE_DtoKpipi_efficiency>();
-	std::shared_ptr<integrator> integral = std::make_shared<integrator>(integralPoints, gen, amplitudes, efficiency);
+	std::shared_ptr<integrator> integral            = std::make_shared<integrator>(integralPoints, gen, amplitudes, efficiency);
 
-//	std::cout << "Starting integration" << std::endl;
-//	integral->integrate();
-//	std::cout << "Finished integration" << std::endl;
 
-	if (!integral->loadIntegrals("ps_integral_corr.dat", "ac_integral_corr.dat")) {
+	std::string integralFileName = "integral_finer_binning";
+
+	bool doIntegration = false;
+
+	if (doIntegration) {
+		std::cout << "Starting integration" << std::endl;
+		integral->integrate();
+		std::cout << "Finished integration" << std::endl;
+
+		integral->writeToFile("ps_"+integralFileName+".dat", false);
+		integral->writeToFile("ac_"+integralFileName+".dat", true);
+
+		std::cout << "Integral files written... finished" << std::endl; 
+		return 0;
+	}
+	if (!integral->loadIntegrals("ps_" + integralFileName+"_regular.dat", "ac_" + integralFileName+"_regular.dat")) {
 		std::cout << "Could not load integrals" << std::endl;
 		return 1;
 	}
@@ -145,8 +207,8 @@ int main(int argc, char *argv[]) {
 /*	const size_t nData = dataPoints.size();
 	const size_t nAmpl = amplitudes.size();
 */	std::vector<std::complex<double> > startValues(nAmpl);
-	
-	// Only crude estimates for the resonance parameters to have nice start vlaues with continuous phase motion
+
+	// Only crude estimates for the resonance parameters to have nice start values with continuous phase motion
 
 	const double mK_0 = 0.824;
 	const double GK_0 = 0.478;
@@ -164,57 +226,70 @@ int main(int argc, char *argv[]) {
 
 	size_t count = 0;
 	double m2;
+//	double width;
+
+//	nData = 250.;
+
 	std::complex<double> coeff(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningKpi.size()-1;++b) {
-		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+	for (size_t b = 0; b < binningKpiS.size()-1;++b) {
+		m2    = (binningKpiS[b] + binningKpiS[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_0, GK_0);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningKpi.size()-1;++b) {
-		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+	for (size_t b = 0; b < binningKpiP.size()-1;++b) {
+		m2 = (binningKpiP[b] + binningKpiP[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_1, GK_1);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningKpi.size()-1;++b) {
-		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+	for (size_t b = 0; b < binningKpiD.size()-1;++b) {
+		m2 = (binningKpiD[b] + binningKpiD[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_2, GK_2);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningKpi.size()-1;++b) {
-		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+	for (size_t b = 0; b < binningKpiS.size()-1;++b) {
+		m2 = (binningKpiS[b] + binningKpiS[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_0, GK_0);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningKpi.size()-1;++b) {
-		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+	for (size_t b = 0; b < binningKpiP.size()-1;++b) {
+		m2 = (binningKpiP[b] + binningKpiP[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_1, GK_1);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningKpi.size()-1;++b) {
-		m2 = (binningKpi[b] + binningKpi[b+1])/2;
+	for (size_t b = 0; b < binningKpiD.size()-1;++b) {
+		m2 = (binningKpiD[b] + binningKpiD[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_2, GK_2);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningPiPi.size()-1;++b) {
-		m2 = (binningPiPi[b] + binningPiPi[b+1])/2;
+	for (size_t b = 0; b < binningPiPiS.size()-1;++b) {
+		m2 = (binningPiPiS[b] + binningPiPiS[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mf_0, Gf_0);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningPiPi.size()-1;++b) {
-		m2 = (binningPiPi[b] + binningPiPi[b+1])/2;
+	for (size_t b = 0; b < binningPiPiP.size()-1;++b) {
+		m2 = (binningPiPiP[b] + binningPiPiP[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mRho, Grho);
 		++count;
 	}
 	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
-	for (size_t b = 0; b < binningPiPi.size()-1;++b) {
-		m2 = (binningPiPi[b] + binningPiPi[b+1])/2;
+	for (size_t b = 0; b < binningPiPiD.size()-1;++b) {
+		m2 = (binningPiPiD[b] + binningPiPiD[b+1])/2;
+//		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mf_2, Gf_2);
 		++count;
 	}
@@ -222,8 +297,6 @@ int main(int argc, char *argv[]) {
 		std::cout << "Number of initialized start values does not match " << count << " != " << nAmpl;
 		return 1;
 	}
-	std::cout << "Start fitting " << argc << std::endl;
-
 	std::ofstream outFile;
 
 //	outFile.open("startValueTest.deleteMe");
@@ -238,9 +311,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (parallel) {
-		std::cout << "Running in parallel mode (results not written so far)" << std::endl;
-//		std::shared_ptr<fabiliLL> ll = std::make_shared<fabiliLL>(amplitudes, integral);
-		std::shared_ptr<fabiliLL_openMP> ll = std::make_shared<fabiliLL_openMP>(amplitudes, integral);
+		std::cout << "Running in fabili mode" << std::endl;
+		std::shared_ptr<fabiliLL> ll = std::make_shared<fabiliLL>(amplitudes, integral);
+//		std::shared_ptr<fabiliLL_openMP> ll = std::make_shared<fabiliLL_openMP>(amplitudes, integral);
 		ll->loadDataPoints(dataPoints);
 		ll->setExtended(true);
 
@@ -252,9 +325,35 @@ int main(int argc, char *argv[]) {
 			ppp.push_back(a.imag());
 		}
 
-		ff.minimize(ppp);
-
+		std::pair<bool, std::vector<double> >retVal = ff.minimize(ppp, 500);
+		if (!retVal.first) {
+			std::cout << "Minimization failed" << std::endl;
+			return 1;
+		}
+		std::vector<std::complex<double> > fitResultProdAmps;
+		for (size_t i = 0; i < retVal.second.size()/2; ++i) {
+			fitResultProdAmps.push_back(std::complex<double>(retVal.second[2*i], retVal.second[2*i+1]));
+		}
 		std::cout << "Finished" << std::endl;
+		evalType finalEval = ll->eval(retVal.second);
+		std::cout << "Events in model: " << integral->totalIntensity(fitResultProdAmps,false) << " ::: " << integral->totalIntensity(fitResultProdAmps,true) << std::endl;
+
+		std::string outFileName = std::string("./BELLEfit_pi") + std::to_string(softpionSign) + std::string("_nsv_fabili_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(finalEval.value) + std::string(".dat");
+		outFile.open(outFileName.c_str());
+		for (std::complex<double>& amp : fitResultProdAmps) {
+			outFile << amp << std::endl;
+		}
+		outFile.close();
+
+		outFileName = std::string("./BELLEfit_hessian_") + std::to_string(seed) + std::string(".dat");
+		outFile.open(outFileName.c_str());
+		for (size_t i = 0; i < 2*ll->nAmpl(); ++i) {
+			for (size_t j = 0; j < 2*ll->nAmpl(); ++j) {
+				outFile << finalEval.hessian(i,j) << " ";
+			}
+			outFile << std::endl;
+		}
+		outFile.close();
 	} else {
 		std::cout << "Running in normal mode" << std::endl;
 
@@ -276,7 +375,7 @@ int main(int argc, char *argv[]) {
 		outFileName = std::string("./BELLEfit_hessian_") + std::to_string(seed) + std::string(".dat");
 		outFile.open(outFileName.c_str());
 		for (size_t i = 0; i < 2*ll.nAmpl(); ++i) {
-		for (size_t j = 0; j < 2*ll.nAmpl(); ++j) {
+			for (size_t j = 0; j < 2*ll.nAmpl(); ++j) {
 				outFile << hessian[i][j] << " ";
 			}
 			outFile << std::endl;

@@ -49,11 +49,15 @@ class logLikelihood : public logLikelihoodBase {
 		std::vector<double>                                    Deval      (std::vector<std::complex<double> >& prodAmps)            const override;
 		std::vector<std::vector<double> >                      DDeval     (std::vector<std::complex<double> >& prodAmps)            const override;
 
+		size_t                                                 getSector(size_t a) const;
 		bool                                                   loadDataPoints (const std::vector<std::vector<double> >& dataPoints) override;
-
+		bool                                                   setCoherenceBorders(std::vector<size_t> borders);
 	protected:
+		size_t                                           _nSect;
 		std::vector<std::shared_ptr<amplitude> >         _amplitudes;
 		std::vector<std::vector<std::complex<double> > > _points;
+		std::vector<size_t>                              _amplitudeCoherenceBorders;
+		std::vector<std::vector<size_t> >                _contributingWaves;
 };
 
 class logLikelihoodAllFree : public logLikelihoodBase {

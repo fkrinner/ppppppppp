@@ -206,11 +206,11 @@ double logLikelihood::operator()(const double* parameters) const {
 */
 
 logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes, std::shared_ptr<integrator> integral) :
-	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _amplitudes(amplitudes), _points() {
+	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _nSect(1), _amplitudes(amplitudes), _points(), _amplitudeCoherenceBorders(0), _contributingWaves(0) {
 	if (_amplitudes.size() == 0) {
 		std::cerr << "logLikelihood::logLikelihood(...): ERROR: No amplitudes given" << std::endl;
 		throw;
-	}	
+	}
 	_kinSignature = _amplitudes[0]->kinSignature();
 	if (not (*_kinSignature == *(integral->kinSignature()))) {
 		std::cerr << "logLikelihood::logLikelihood(...): ERROR: Kinematic signature of integral differs" << std::endl;
@@ -233,8 +233,11 @@ logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes
 			throw;
 		}
 	}
+	if (not setCoherenceBorders(_integral->getCoherenceBorders())) {
+		std::cerr << "logLikelihood::logLikelihood(...): ERROR: Could not set coherence borders" << std::endl;
+		throw;
+	}
 }
-
 
 double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 	if (prodAmps.size() != _nAmpl) {
@@ -244,11 +247,19 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 	double ll = 0.;
 //#pragma omp parallel for reduction(+:ll)
 	for (size_t p = 0; p < _nPoints; ++p) {
+		size_t upperSectorBorder = _amplitudeCoherenceBorders[1]; // {0, b1, b2, ..., _nAmpl}.size() = nSector +1
+		double intens = 0.;
 		std::complex<double> ampl (0.,0.);
-		for (size_t a = 0; a < _nAmpl; ++a) {
+		for (size_t a : _contributingWaves[p]) {
+			if (a >= upperSectorBorder) {
+				intens += norm(ampl);
+				ampl = std::complex<double>(0.,0.);
+				upperSectorBorder = _amplitudeCoherenceBorders[getSector(a)+1];
+			}
 			ampl += _points[p][a] * prodAmps[a];
 		}
-		ll += log(norm(ampl));
+		intens += norm(ampl); // Do also for the last sector
+		ll += log(intens);
 	}
 	if (_extended) {
 		ll -= _integral->totalIntensity(prodAmps, true);
@@ -269,14 +280,30 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 	}
 	std::vector<double> retVal(2*_nAmpl, 0.);
 	for (size_t p = 0; p < _nPoints; ++p) {
-		std::complex<double> ampl(0.,0.);
-		for (size_t a = 0; a < _nAmpl; ++a) {
-			ampl += _points[p][a] * prodAmps[a];
+		size_t sector = 0;
+		size_t upperSectorBorder = _amplitudeCoherenceBorders[1];
+		double intens = 0.;
+		std::vector<std::complex<double> > sectorAmpls(_nSect, std::complex<double>(0.,0.));
+		for (size_t a : _contributingWaves[p]) {
+			if (a >= upperSectorBorder) {
+				intens += norm(sectorAmpls[sector]);
+				sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
+				sector = getSector(a);
+				upperSectorBorder = _amplitudeCoherenceBorders[sector+1];
+			}
+			sectorAmpls[sector] += _points[p][a] * prodAmps[a];
 		}
-		double intens = norm(ampl);
-		ampl = std::conj(ampl); // Will only be used conjugated
-		for (size_t a = 0; a < _nAmpl; ++a) {
-			std::complex<double> factor = _points[p][a] * ampl/intens * 2.;
+		intens += norm(sectorAmpls[sector]); // Do also for the last sector
+		sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
+//		ampl = std::conj(ampl); // Will only be used conjugated
+		sector = 0;
+		upperSectorBorder = _amplitudeCoherenceBorders[1];
+		for (size_t a : _contributingWaves[p]) {
+			if (a >= upperSectorBorder) {
+				sector = getSector(a);
+				upperSectorBorder = _amplitudeCoherenceBorders[sector+1];
+			}
+			std::complex<double> factor = _points[p][a] * sectorAmpls[sector]/intens * 2.;
 			retVal[2*a  ] -= factor.real(); // One factor of -1 since, the NEGATIVE likelihood is used 
 			retVal[2*a+1] += factor.imag(); // Two factors of -1: Complex i*i = -1 and since the NEGATIVE likelihood is used
 		}
@@ -302,22 +329,46 @@ std::vector<std::vector<double> > logLikelihood::DDeval(std::vector<std::complex
 	}
 	std::vector<std::vector<double> > retVal(2*_nAmpl, std::vector<double> (2*_nAmpl, 0.));
 	for (size_t p = 0; p < _nPoints; ++p) {
-		std::complex<double> ampl(0.,0.);
-		for (size_t a = 0; a < _nAmpl; ++a) {
-			ampl += _points[p][a] * prodAmps[a];
+		size_t sector = 0;
+		size_t upperSectorBorder = _amplitudeCoherenceBorders[1];
+		double intens = 0.;
+		std::vector<std::complex<double> > sectorAmpls(_nSect, std::complex<double>(0.,0.));
+		for (size_t a : _contributingWaves[p]) {
+			if (a >= upperSectorBorder) {
+				intens += norm(sectorAmpls[sector]);
+				sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
+				sector = getSector(a);
+				upperSectorBorder = _amplitudeCoherenceBorders[sector+1];
+			}
+			sectorAmpls[sector] += _points[p][a] * prodAmps[a];
 		}
-		double intens = norm(ampl);
-		ampl = std::conj(ampl); // Will only be used conjugated
-		for(size_t ai = 0; ai < _nAmpl; ++ai) {
-			std::complex<double> factori = _points[p][ai] * ampl/intens * 2.;
-			for (size_t aj = 0; aj < _nAmpl; ++aj) {
-				std::complex<double> factor = _points[p][ai] * std::conj(_points[p][aj])/intens*2.;
-				retVal[2*ai  ][2*aj  ] -= factor.real();
-				retVal[2*ai  ][2*aj+1] -= factor.imag();
-				retVal[2*ai+1][2*aj  ] += factor.imag();
-				retVal[2*ai+1][2*aj+1] -= factor.real();
+		intens += norm(sectorAmpls[sector]); // Do also for the last sector
+		sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
 
-				std::complex<double> factorj = -_points[p][aj] * ampl/intens *2.; // -1/intens and then the same factor;
+		size_t sector_i = 0;
+		size_t upperSectorBorder_i = _amplitudeCoherenceBorders[1];
+		for(size_t ai : _contributingWaves[p]) {
+			if (ai >= upperSectorBorder_i) {
+				sector_i = getSector(ai);
+				upperSectorBorder_i = _amplitudeCoherenceBorders[sector_i+1];
+			}
+			std::complex<double> factori = _points[p][ai] * sectorAmpls[sector_i]/intens * 2.;
+
+			size_t sector_j = 0;
+			size_t upperSectorBorder_j = _amplitudeCoherenceBorders[1];
+			for (size_t aj : _contributingWaves[p]) {
+				if (aj >= upperSectorBorder_j) {
+					sector_j = getSector(aj);
+					upperSectorBorder_j = _amplitudeCoherenceBorders[sector_j+1];
+				}
+				if (sector_i == sector_j) {
+					std::complex<double> factor = _points[p][ai] * std::conj(_points[p][aj])/intens*2.;
+					retVal[2*ai  ][2*aj  ] -= factor.real();
+					retVal[2*ai  ][2*aj+1] -= factor.imag();
+					retVal[2*ai+1][2*aj  ] += factor.imag();
+					retVal[2*ai+1][2*aj+1] -= factor.real();
+				}
+				std::complex<double> factorj = -_points[p][aj] * sectorAmpls[sector_j]/intens *2.; // -1/intens and then the same factor;
 
 				retVal[2*ai  ][2*aj  ] -= factori.real() * factorj.real();
 				retVal[2*ai  ][2*aj+1] += factori.real() * factorj.imag();
@@ -352,6 +403,8 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 	}
 	_nPoints = dataPoints.size();
 	_points  = std::vector<std::vector<std::complex<double> > > (_nPoints, std::vector<std::complex<double> > (_nAmpl));
+	_contributingWaves= std::vector<std::vector<size_t> >(_nPoints, std::vector<size_t>(_nAmpl));
+	std::vector<size_t> counts(_nPoints, 0);
 	for(size_t a = 0; a < _nAmpl; ++a) {
 		std::pair<bool, std::complex<double> > diag = _integral->element(a,a);
 		if (not diag.first) {
@@ -364,9 +417,48 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 		}
 		for (size_t p = 0; p < _nPoints; ++p) {
 			_points[p][a] = _amplitudes[a]->eval(dataPoints[p])*norm;
+			if (_points[p][a] != std::complex<double>(0.,0.)) {
+				_contributingWaves[p][counts[p]] = a;
+				++counts[p];
+			}
 		}
 	}
+	for (size_t p = 0; p < _nPoints; ++p) {
+		_contributingWaves[p].resize(counts[p]);
+	}
 	return true;
+}
+
+bool logLikelihood::setCoherenceBorders(std::vector<size_t> borders) {
+	if (borders[0] != 0) {
+		std::cout << "logLikelihood::setCoherenceBorders(...): ERROR: First border has to be zero" << std::endl;
+		return false;
+	}
+	_amplitudeCoherenceBorders = std::vector<size_t>(borders.size(),0);
+	for (size_t i = 1; i < borders.size(); ++i) {
+		if (borders[i] <= _amplitudeCoherenceBorders[i-1]) {
+			std::cout << "logLikelihood::setCoherenceBorders(...): ERROR: Borders are nor ordered" << std::endl;
+			return false;
+		}
+		 _amplitudeCoherenceBorders[i] = borders[i];
+	}
+	if (_amplitudeCoherenceBorders[_amplitudeCoherenceBorders.size()-1] != _nAmpl) {
+		std::cout << "logLikelihood::setCoherenceBorders(...): ERROR: Last border has to be _nAmpl ( = " << _nAmpl << " != "  << _amplitudeCoherenceBorders[_amplitudeCoherenceBorders.size()-1] << " )" << std::endl;
+		return false;
+	}
+	_nSect = _amplitudeCoherenceBorders.size()-1;
+	return true;
+}
+
+size_t logLikelihood::getSector(size_t a) const {
+	for (size_t s = 0; s < _nSect; ++s) {
+		if (_amplitudeCoherenceBorders[s] <= a && _amplitudeCoherenceBorders[s+1] > a) {
+			return s;
+		}
+	}
+	std::cout << "logLikelihood::getSector(...): ERROR: No sector found for amplitude index " << a << " (_nAmpl = " << _nAmpl << ")" << std::endl;
+	throw;
+	return 0;
 }
 
 logLikelihoodAllFree::logLikelihoodAllFree (std::vector<double> binning, std::vector<std::shared_ptr<angularDependence> > freedAmplitudes, std::shared_ptr<integrator> integral) :
@@ -438,7 +530,7 @@ bool logLikelihoodAllFree::loadDataPoints(const std::vector<std::vector<double> 
 		}
 	}
 	return true;
-}	
+}
 
 std::pair<bool, std::pair<size_t, size_t> > logLikelihoodAllFree::findBin(const std::vector<double>& point) const {
 	bool found1 = false;

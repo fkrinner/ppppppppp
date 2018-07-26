@@ -22,6 +22,8 @@ class integrator {
 		std::vector<double>               DtotalIntensity  (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
 		std::vector<std::vector<double> > DDtotalIntensity (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
 
+		bool                                addIncoherentSector(std::shared_ptr<integrator> sector);
+
 		bool                                isIntegrated ()                     const {return _isIntegrated;}
 		bool                                setNpoints   (size_t n);
 		bool                                writeToFile  (std::string fileName, bool accCorr = false) const;
@@ -29,11 +31,16 @@ class integrator {
 		std::pair<bool, size_t>             getNpoints   ()                     const; 
 		std::pair<bool, std::string>        getWaveName  (size_t i)             const;
 		std::shared_ptr<kinematicSignature> kinSignature ()                     const {return _kinSignature;}
+		std::vector<size_t>                 getCoherenceBorders()               const {return _amplitudeCoherenceBorders;}
+
+		bool                                setCoherenceBorders(std::vector<size_t>& borders);
+
 	protected:
 		bool                                             _isIntegrated;
 		std::shared_ptr<kinematicSignature>              _kinSignature;
 		size_t                                           _nAmpl;
 		size_t                                           _nPoints;
+		std::vector<size_t>                              _amplitudeCoherenceBorders;
 		std::vector<std::shared_ptr<amplitude> >         _amplitudes;
 		std::shared_ptr<generator>                       _generator;
 		std::shared_ptr<efficiencyFunction>              _efficiency;

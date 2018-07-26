@@ -103,7 +103,6 @@ std::vector<double> threeParticleMassGenerator::generate() const {
 		} else {
 			++_failCount;
 			if (_failCount > _maxFail) {
-				std::cerr << "threeParticleMassGenerator::generate(): Over " << _maxFail << " failed attempts. Aborting." << std::endl;
 				throw;
 			}
 		}

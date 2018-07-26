@@ -38,7 +38,7 @@ evalType fabiliLL_openMP::eval(const std::vector<double>& parameters) const {
 		prodAmps[a] = std::complex<double>(parameters[2*a-2+skip], parameters[2*a-1+skip]);
 	}
 	const size_t maxNthread = omp_get_max_threads();
-	std::cout << "maximum number of threads is " << maxNthread << std::endl;
+//	std::cout << "maximum number of threads is " << maxNthread << std::endl;
 
 	std::vector<double> ll_thread = std::vector<double>(maxNthread, 0.);
 	std::vector<std::vector<double> > Dll_thread(maxNthread, std::vector<double>(2*_nAmpl, 0.));
@@ -46,26 +46,51 @@ evalType fabiliLL_openMP::eval(const std::vector<double>& parameters) const {
 #pragma omp parallel for
 	for (size_t p = 0; p < _nPoints; ++p) {
 		const size_t ID = omp_get_thread_num();
-		std::complex<double> ampl (0.,0.);
-		for (size_t a = 0; a < _nAmpl; ++a) {
-			ampl += _points[p][a] * prodAmps[a];
+		size_t sector = 0;
+		size_t upperSectorBorder = _amplitudeCoherenceBorders[1];
+		double intens = 0.;
+		std::vector<std::complex<double> > sectorAmpls(_nSect, std::complex<double>(0.,0.));
+		for (size_t a : _contributingWaves[p]) {
+			if (a >= upperSectorBorder) {
+				intens += norm(sectorAmpls[sector]);
+				sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
+				sector = getSector(a);
+				upperSectorBorder = _amplitudeCoherenceBorders[sector+1];
+			}
+			sectorAmpls[sector] += _points[p][a] * prodAmps[a];
 		}
-		double intens = norm(ampl);
+
+		intens += norm(sectorAmpls[sector]); // Do also for the last sector
+		sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
 		ll_thread[ID] -= log(intens);
-		ampl = std::conj(ampl); // Will only be used conjugated
 //		#pragma omp parallel for
-		for (size_t ai = 0; ai < _nAmpl; ++ai) {
-			std::complex<double> factori = _points[p][ai] * ampl/intens * 2.;
+
+		size_t sector_i = 0;
+		size_t upperSectorBorder_i = _amplitudeCoherenceBorders[1];		
+		for (size_t ai : _contributingWaves[p]) {
+			if (ai >= upperSectorBorder_i) {
+				sector_i = getSector(ai);
+				upperSectorBorder_i = _amplitudeCoherenceBorders[sector_i+1];
+			}
+			std::complex<double> factori = _points[p][ai] * sectorAmpls[sector_i]/intens * 2.;
 			Dll_thread[ID][2*ai  ] -= factori.real(); // One factor of -1 since, the NEGATIVE likelihood is used 
 			Dll_thread[ID][2*ai+1] += factori.imag(); // Two factors of -1: Complex i*i = -1 and since the NEGATIVE likelihood is used
-			for (size_t aj = 0; aj < _nAmpl; ++aj) {
-				std::complex<double> factor = _points[p][ai] * std::conj(_points[p][aj])/intens*2.;
-				DDll_thread[ID][2*ai  ][2*aj  ] -= factor.real();
-				DDll_thread[ID][2*ai  ][2*aj+1] -= factor.imag();
-				DDll_thread[ID][2*ai+1][2*aj  ] += factor.imag();
-				DDll_thread[ID][2*ai+1][2*aj+1] -= factor.real();
 
-				std::complex<double> factorj = -_points[p][aj] * ampl/intens *2.; // -1/intens and then the same factor;
+			size_t sector_j = 0;
+			size_t upperSectorBorder_j = _amplitudeCoherenceBorders[1];
+			for (size_t aj : _contributingWaves[p]) {
+				if (aj >= upperSectorBorder_j) {
+					sector_j = getSector(aj);
+					upperSectorBorder_j = _amplitudeCoherenceBorders[sector_j+1];
+				}
+				if (sector_i == sector_j) {
+					std::complex<double> factor = _points[p][ai] * std::conj(_points[p][aj])/intens*2.;
+					DDll_thread[ID][2*ai  ][2*aj  ] -= factor.real();
+					DDll_thread[ID][2*ai  ][2*aj+1] -= factor.imag();
+					DDll_thread[ID][2*ai+1][2*aj  ] += factor.imag();
+					DDll_thread[ID][2*ai+1][2*aj+1] -= factor.real();
+				}
+				std::complex<double> factorj = -_points[p][aj] * sectorAmpls[sector_j]/intens *2.; // -1/intens and then the same factor;
 
 				DDll_thread[ID][2*ai  ][2*aj  ] -= factori.real() * factorj.real();
 				DDll_thread[ID][2*ai  ][2*aj+1] += factori.real() * factorj.imag();
@@ -89,7 +114,7 @@ evalType fabiliLL_openMP::eval(const std::vector<double>& parameters) const {
 
 
 	double integralIntensity      = _integral->totalIntensity(prodAmps, true);
-	std::cout << "integral inensity " << integralIntensity << std::endl;
+//	std::cout << "integral inensity " << integralIntensity << std::endl;
 	std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps, true);
 	std::vector<std::vector<double> > DDintegral = _integral->DDtotalIntensity(prodAmps,true);
 	if (_extended) {

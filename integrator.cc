@@ -23,6 +23,8 @@ integrator::integrator(size_t integralPoints, std::shared_ptr<generator> pointGe
 		std::cerr << "integrator::integrator(...): ERROR: Kinematic signatures in amplitudes and efficiency differ" << std::endl;
 		throw;
 	}
+	std::cout << "integrator nAmpl = " << _nAmpl << std::endl;
+	_amplitudeCoherenceBorders = {0, _nAmpl};
 }
 
 bool integrator::integrate() {
@@ -208,3 +210,80 @@ std::pair<bool, std::string> integrator::getWaveName(size_t i) const {
 std::pair<bool, size_t> integrator::getNpoints() const {
 	return std::pair<bool, size_t>(true, _nPoints);
 }
+
+bool integrator::setCoherenceBorders(std::vector<size_t>& borders) {
+	if (borders[0] != 0) {
+		std::cout << "integrator::setCoherenceBorders(...): ERROR: First border has to be zero" << std::endl;
+		return false;
+	}
+	_amplitudeCoherenceBorders = std::vector<size_t>(borders.size(),0);
+	for (size_t i = 1; i < borders.size(); ++i) {
+		if (borders[i] <= _amplitudeCoherenceBorders[i-1]) {
+			std::cout << "integrator::setCoherenceBorders(...): ERROR: Borders are nor ordered" << std::endl;
+			return false;
+		}
+		 _amplitudeCoherenceBorders[i] = borders[i];
+	}
+	if (_amplitudeCoherenceBorders[_amplitudeCoherenceBorders.size()] != _nAmpl) {
+		std::cout << "integrator::setCoherenceBorders(...): ERROR: Last border has to be _nAmpl" << std::endl;
+		return false;
+	}
+	return true;
+}
+
+bool integrator::addIncoherentSector(std::shared_ptr<integrator> sector) {
+	if (not isIntegrated()) {
+		std::cout << "integrator::addIncoherentSector(...): ERROR: Cannot add second sector before integration" << std::endl;
+		return false;
+	}
+	if (not sector->isIntegrated()) {
+		std::cout << "integrator::addIncoherentSector(...): ERROR: Cannot add non-integrated sector" << std::endl;
+		return false;
+	}
+	if (not (*_kinSignature == *(sector->kinSignature()))) {
+		std::cout << "integrator::addIncoherentSector(...): ERROR: Kinematic signatures have to match" << std::endl;
+		return false;
+	}
+	if (_nPoints != sector->getNpoints().second) {
+		std::cout << "integrator::addIncoherentSector(...): ERROR: Number of points has to match" << std::endl;
+		return false;
+	}
+	
+	size_t nNew   = sector->nAmpl();
+	size_t nTotal = _nAmpl + nNew;
+	std::vector<std::vector<std::complex<double> > > new_ps_integral(nTotal, std::vector<std::complex<double> >(nTotal, std::complex<double>(0.,0.)));
+	std::vector<std::vector<std::complex<double> > > new_ac_integral(nTotal, std::vector<std::complex<double> >(nTotal, std::complex<double>(0.,0.)));
+	for (size_t i = 0; i < _nAmpl; ++i) {
+		for (size_t j = 0; j < _nAmpl; ++j) {
+			new_ps_integral[i][j] = _integralMatrix[i][j];
+			new_ac_integral[i][j] = _accCorrIntegralMatrix[i][j];
+		}	
+	}
+	for (size_t i = 0; i < nNew; ++i) {
+		for (size_t j = 0; j < nNew; ++j) {
+			new_ps_integral[_nAmpl+i][_nAmpl+j] = sector->element(i,j,false).second;
+			new_ac_integral[_nAmpl+i][_nAmpl+j] = sector->element(i,j,true).second;
+		}
+	}
+	for (size_t i : sector->getCoherenceBorders()) {
+		if (i > 0) { // Do not add the leading 0
+			_amplitudeCoherenceBorders.push_back(_nAmpl + i);
+		}
+	}
+	_nAmpl = nTotal;
+	_integralMatrix = new_ps_integral;
+	_accCorrIntegralMatrix = new_ac_integral;
+	std::vector<std::shared_ptr<amplitude> > newAmplitudes;
+	for (std::shared_ptr<amplitude> a : _amplitudes) {
+		newAmplitudes.push_back(a);
+	}
+	for (std::shared_ptr<amplitude> a : (*sector)._amplitudes) {
+		newAmplitudes.push_back(a);
+	}
+	_amplitudes = newAmplitudes;
+	return true;	
+}
+
+
+
+
