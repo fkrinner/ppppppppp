@@ -1,6 +1,8 @@
 #include"modelAmplitude.h"
 #include<iostream>
-modelAmplitude::modelAmplitude(std::vector<std::complex<double> > transitionAmplitudes, std::vector<std::shared_ptr<amplitude> > amplitudes, std::vector<double> normalizations) {
+modelAmplitude::modelAmplitude(std::vector<std::complex<double> > transitionAmplitudes, std::vector<std::shared_ptr<amplitude> > amplitudes, std::vector<double> normalizations, std::string name) : 
+amplitude(amplitudes.at(0)->kinSignature(), name)
+{
 	if (amplitudes.size() == 0) {
 		std::cerr << "modelAmplitude::modelAmplitude(...): ERROR: No amplitudes given." << std::endl;
 		throw;
@@ -26,7 +28,7 @@ modelAmplitude::modelAmplitude(std::vector<std::complex<double> > transitionAmpl
 	_normalizations = normalizations;
 }
 
-std::complex<double> modelAmplitude::ampl(const std::vector<double>& kin) const {
+std::complex<double> modelAmplitude::eval(const std::vector<double>& kin) const {
 	if (kin.size() != _kinSignature->nKin()) {
 		std::cerr << "modelAmplitude::ampl(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
 		return std::complex<double>(0.,0.);

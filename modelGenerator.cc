@@ -1,6 +1,6 @@
 #include"modelGenerator.h"
 #include<iostream>
-modelGenerator::modelGenerator(std::shared_ptr<modelAmplitude> model, std::shared_ptr<generator> gen):
+modelGenerator::modelGenerator(std::shared_ptr<amplitude> model, std::shared_ptr<generator> gen):
 	_maxFail(1000), _failCount(0), _kinSignature(model->kinSignature()), _generator(gen), _model(model) {
 	if (not(*_kinSignature == *(_generator->kinSignature()))) {
 		std::cerr << "modelGenerator::modelGenerator(...): ERROR: Kinematic signatures do not match" << std::endl;

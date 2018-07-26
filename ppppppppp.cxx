@@ -201,7 +201,7 @@ int main() {
 		}
 	}
 
-	std::shared_ptr<modelAmplitude> model = std::make_shared<modelAmplitude>(transitionAmplitudes, amplitudes, normalizations);
+	std::shared_ptr<amplitude> model = std::make_shared<modelAmplitude>(transitionAmplitudes, amplitudes, normalizations, "modelAmplitude");
 
 	modelGenerator generator(model, gen);
 	std::cout << "Starting generation" << std::endl;

@@ -13,11 +13,12 @@ class amplitude {
 		amplitude (std::shared_ptr<kinematicSignature> kinSignature, std::string name);
 
 		virtual std::complex<double> eval (const std::vector<double>& kin) const;
+		double  intens (const std::vector<double>& kin) const {return std::norm(eval(kin));}
 
 		std::string                         name         () const {return _name;}
 		size_t                              nKin         () const {return _kinSignature->nKin();}
-		std::shared_ptr<kinematicSignature> kinSignature () const { return _kinSignature;}
-		
+		std::shared_ptr<kinematicSignature> kinSignature () const {return _kinSignature;}
+
 
 	protected:
 		std::shared_ptr<kinematicSignature> _kinSignature;
