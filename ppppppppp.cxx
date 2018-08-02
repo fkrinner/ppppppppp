@@ -202,8 +202,8 @@ int main() {
 	}
 
 	std::shared_ptr<amplitude> model = std::make_shared<modelAmplitude>(transitionAmplitudes, amplitudes, normalizations, "modelAmplitude");
-
 	modelGenerator generator(model, gen);
+
 	std::cout << "Starting generation" << std::endl;
 	std::vector<std::vector<double> > generatedPoints = generator.generateDataPoints(nPoints, nPoints); // Won't loose anything, if the burn-in is as long as the sample
 	std::cout << "Finished generation" << std::endl;

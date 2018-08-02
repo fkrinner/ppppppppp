@@ -15,12 +15,18 @@ class integrator {
 
 		bool                                             integrate         ();
 		bool                                             loadIntegrals(const std::string& psFileName, const std::string& accFileName);
+		bool                                             setIntegrals(const std::vector<std::vector<std::complex<double> > >& ps_integral, const std::vector<std::vector<std::complex<double> > >& ac_integral);
 		std::vector<std::vector<std::complex<double> > > getIntegralMatrix (bool accCorr = false)                     const;
 		std::pair<bool, std::complex<double> >           element           (size_t i, size_t j, bool accCorr = false) const;
+		std::pair<bool, std::vector<double> >            getNormalizations(bool accCorr = false) const;
 
-		double                            totalIntensity   (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
-		std::vector<double>               DtotalIntensity  (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
-		std::vector<std::vector<double> > DDtotalIntensity (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
+		double                              totalIntensity   (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
+		std::vector<double>                 DtotalIntensity  (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
+		std::vector<std::vector<double> >   DDtotalIntensity (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
+
+		double                              multiplyLR    (const std::vector<std::complex<double> >& L, const std::vector<std::complex<double> >& R, bool accCorr = false) const;
+		std::vector<double>                 DLmultiplyLR  (const std::vector<std::complex<double> >& L, const std::vector<std::complex<double> >& R, bool accCorr = false) const;
+		std::vector<double>                 DRmultiplyLR  (const std::vector<std::complex<double> >& L, const std::vector<std::complex<double> >& R, bool accCorr = false) const;
 
 		bool                                addIncoherentSector(std::shared_ptr<integrator> sector);
 
@@ -34,9 +40,16 @@ class integrator {
 		std::vector<size_t>                 getCoherenceBorders()               const {return _amplitudeCoherenceBorders;}
 
 		bool                                setCoherenceBorders(std::vector<size_t>& borders);
+		bool                                setNumLim(double val) {_numLim = val; return true;}
+
+		bool                                setNonDiagToZero();
+		bool                                resize(size_t nAmpl);
 
 	protected:
+		bool                                makeRealMatrices();
+
 		bool                                             _isIntegrated;
+		double                                           _numLim; //  Used in check of hermitianity
 		std::shared_ptr<kinematicSignature>              _kinSignature;
 		size_t                                           _nAmpl;
 		size_t                                           _nPoints;
@@ -46,6 +59,8 @@ class integrator {
 		std::shared_ptr<efficiencyFunction>              _efficiency;
 		std::vector<std::vector<std::complex<double> > > _integralMatrix;
 		std::vector<std::vector<std::complex<double> > > _accCorrIntegralMatrix;
+		std::vector<std::vector<double> >                _realIntegralMatrix;
+		std::vector<std::vector<double> >                _realAccCorrMatrix;
 };
 #endif//INTEGRATOR__
 

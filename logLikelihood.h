@@ -30,6 +30,7 @@ class logLikelihoodBase {
 		bool                    setExtended      (bool flag)                {_extended = flag; return true;}
 		size_t                  getNpar          ()                   const;
 		size_t                  nAmpl            ()                   const {return _nAmpl;}
+		size_t                  nCalls           ()                   const {return _nCalls;}
 	protected:
 		bool                                             _fixFirstPhase;
 		bool                                             _extended;
@@ -52,12 +53,21 @@ class logLikelihood : public logLikelihoodBase {
 		size_t                                                 getSector(size_t a) const;
 		bool                                                   loadDataPoints (const std::vector<std::vector<double> >& dataPoints) override;
 		bool                                                   setCoherenceBorders(std::vector<size_t> borders);
+
+		bool                    setNstore        (size_t nStore);
+		std::pair<std::vector<double>, std::vector<double> > getStoredPoints() const;
 	protected:
 		size_t                                           _nSect;
 		std::vector<std::shared_ptr<amplitude> >         _amplitudes;
 		std::vector<std::vector<std::complex<double> > > _points;
 		std::vector<size_t>                              _amplitudeCoherenceBorders;
 		std::vector<std::vector<size_t> >                _contributingWaves;
+
+		size_t                                           _nStore;
+		mutable size_t                                   _storageLocation;
+		mutable std::vector<std::complex<double> >       _lastPar;
+		mutable std::vector<double>                      _storeEvals;
+		mutable std::vector<double>                      _storeSteps;
 };
 
 class logLikelihoodAllFree : public logLikelihoodBase {

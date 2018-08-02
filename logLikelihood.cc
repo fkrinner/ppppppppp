@@ -1,7 +1,7 @@
 #include"logLikelihood.h"
 #include<string>
 #include<nlopt.hpp>
-
+//#include<fstream>
 
 double ff_nlopt(const std::vector<double> &x, std::vector<double> &grad, void* f_data) {
 	logLikelihood* inst = reinterpret_cast<logLikelihood*>(f_data);
@@ -33,7 +33,7 @@ logLikelihoodBase::logLikelihoodBase (size_t nAmpl, std::shared_ptr<kinematicSig
 
 std::pair<double, std::vector<std::complex<double> > > logLikelihoodBase::fitNlopt(std::vector<std::complex<double> >& parameters) {
 	nlopt::opt opt = nlopt::opt(nlopt::LD_LBFGS, getNpar());
-	opt.set_ftol_abs(1.E-14);
+//	opt.set_ftol_abs(1.E-14);
 	opt.set_min_objective(ff_nlopt, this);
 	std::vector<double> startPars(getNpar());
 	size_t skip = 0;
@@ -50,7 +50,35 @@ std::pair<double, std::vector<std::complex<double> > > logLikelihoodBase::fitNlo
 		startPars[2*a-1+skip] = parameters[a].imag();
 	}
 	double bestVal;
-	opt.optimize(startPars, bestVal);
+	int optimization_result  = opt.optimize(startPars, bestVal);
+
+	std::cout << "optimization status: " <<  optimization_result << std::endl;
+	if (optimization_result == 1) {
+		std:: cout << " - nlopt status: NLOPT_SUCCESS" << std::endl;
+	} else if ( optimization_result == 2 ) {
+		std:: cout << " - nlopt status: NLOPT_STOPVAL_REACHED" << std::endl;
+	} else if ( optimization_result == 3 ) {
+		std:: cout << " - nlopt status: NLOPT_FTOL_REACHED" << std::endl;
+	} else if ( optimization_result == 4 ) {
+		std:: cout << " - nlopt status: NLOPT_XTOL_REACHED" << std::endl;
+	} else if ( optimization_result == 5 ) {
+		std:: cout << " - nlopt status: NLOPT_MAXEVAL_REACHED" << std::endl;
+	} else if ( optimization_result == 6 ) {
+		std:: cout << " - nlopt status: NLOPT_MAXTIME_REACHED" << std::endl;
+	} else if ( optimization_result == -1 ) {
+		std:: cout << " - nlopt status: NLOPT_FAILURE" << std::endl;
+	} else if ( optimization_result == -2 ) {
+		std:: cout << " - nlopt status: NLOPT_INVALID_ARGS" << std::endl;
+	} else if ( optimization_result == -3 ) {
+		std:: cout << " - nlopt status: NLOPT_OUT_OF_MEMORY" << std::endl;
+	} else if ( optimization_result == -4 ) {
+		std:: cout << " - nlopt status: NLOPT_ROUNDOFF_LIMITED" << std::endl;
+	} else if ( optimization_result == -5 ) {
+		std:: cout << " - nlopt status: NLOPT_FORCED_STOP" << std::endl;
+	} else {
+		std::cout << " - Unknown nlopt status: " << optimization_result << std::endl;
+	}
+
 	std::vector<std::complex<double> >retVal(_nAmpl);
 	if (_fixFirstPhase) { // skip is already set accordingly
 		retVal[0] = std::complex<double>(startPars[0], 0.);
@@ -206,7 +234,8 @@ double logLikelihood::operator()(const double* parameters) const {
 */
 
 logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes, std::shared_ptr<integrator> integral) :
-	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _nSect(1), _amplitudes(amplitudes), _points(), _amplitudeCoherenceBorders(0), _contributingWaves(0) {
+	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _nSect(1), _amplitudes(amplitudes), _points(), _amplitudeCoherenceBorders(0), _contributingWaves(0),
+        _nStore(0), _storageLocation(0), _lastPar(), _storeEvals(), _storeSteps() {
 	if (_amplitudes.size() == 0) {
 		std::cerr << "logLikelihood::logLikelihood(...): ERROR: No amplitudes given" << std::endl;
 		throw;
@@ -240,6 +269,9 @@ logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes
 }
 
 double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
+//	std::ofstream outFile;
+//	std::string outFileName = "was_geschicht_"+std::to_string(_nAmpl)+".deleteMe";
+//	outFile.open(outFileName.c_str());
 	if (prodAmps.size() != _nAmpl) {
 		std::cerr << "logLikelihood::eval(...): ERROR: Number of production amplitudes does not match" << std::endl;
 		throw; // Throw here, since a ll = 0. could confuse the program
@@ -261,6 +293,7 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 		intens += norm(ampl); // Do also for the last sector
 		ll += log(intens);
 	}
+	return -ll;
 	if (_extended) {
 		ll -= _integral->totalIntensity(prodAmps, true);
 	} else {
@@ -269,6 +302,21 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 	++_nCalls;
 	if (_nCalls%_nCallsPrint == 0) {
 		std::cout << "call #" << _nCalls << " like " << -ll << std::endl;
+	}
+	if (_nStore > 0) {
+		if (_lastPar.size() > 0) {
+			_storeEvals[_storageLocation] = -ll;
+			double step = 0.;
+			for (size_t a = 0; a < prodAmps.size(); ++a) {
+				step += norm(prodAmps[a] - _lastPar[a]);
+			}
+			_storeSteps[_storageLocation] = pow(step,.5);
+			++_storageLocation;
+			if (_storageLocation == _nStore) {
+				_storageLocation = 0;
+			}
+		}
+		_lastPar = prodAmps;
 	}
 	return -ll;
 }
@@ -295,7 +343,6 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 		}
 		intens += norm(sectorAmpls[sector]); // Do also for the last sector
 		sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
-//		ampl = std::conj(ampl); // Will only be used conjugated
 		sector = 0;
 		upperSectorBorder = _amplitudeCoherenceBorders[1];
 		for (size_t a : _contributingWaves[p]) {
@@ -308,7 +355,24 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 			retVal[2*a+1] += factor.imag(); // Two factors of -1: Complex i*i = -1 and since the NEGATIVE likelihood is used
 		}
 	}
+//	_integral->setNonDiagToZero();
+
+	return retVal;
+
 	std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps, true);
+	
+	double totInt = _integral->totalIntensity(prodAmps, true);
+	double delta = 1.e-6;
+	for (size_t a = 0; a < _nAmpl; ++a) {
+		prodAmps[a] += std::complex<double>(delta,0.);
+//		std::cout << Dintegral[2*a] << " | | | " << (_integral->totalIntensity(prodAmps, true)-totInt)/delta  << std::endl;
+//		Dintegral[2*a  ] = (_integral->totalIntensity(prodAmps, true)-totInt)/delta;
+		prodAmps[a] += std::complex<double>(-delta,delta);
+//		std::cout << Dintegral[2*a+1] << " | | | " << (_integral->totalIntensity(prodAmps, true)-totInt)/delta << std::endl;
+//		Dintegral[2*a+1] = (_integral->totalIntensity(prodAmps, true)-totInt)/delta;
+		prodAmps[a] += std::complex<double>(0.,-delta);
+	}
+	totInt += totInt;
 	if (_extended) {
 		for (size_t a = 0; a < 2*_nAmpl; ++a) {
 			retVal[a] += Dintegral[a];
@@ -406,7 +470,7 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 	_contributingWaves= std::vector<std::vector<size_t> >(_nPoints, std::vector<size_t>(_nAmpl));
 	std::vector<size_t> counts(_nPoints, 0);
 	for(size_t a = 0; a < _nAmpl; ++a) {
-		std::pair<bool, std::complex<double> > diag = _integral->element(a,a);
+		std::pair<bool, std::complex<double> > diag = _integral->element(a,a, false);
 		if (not diag.first) {
 			std::cerr << "logLikelihood::loadDataPoints(...): ERROR: Could not get diagonal integral" << std::endl;
 			return false;
@@ -416,7 +480,12 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 			norm = 1./pow(diag.second.real(), .5);
 		}
 		for (size_t p = 0; p < _nPoints; ++p) {
-			_points[p][a] = _amplitudes[a]->eval(dataPoints[p])*norm;
+			_points[p][a] = _amplitudes[a]->eval(dataPoints[p]);
+			if (norm == 0. && _points[p][a] != 0.) {
+				std::cout << "logLikelihood::loadDataPoints(...): ERROR: Zero-norm wave has non-vanishing amplitude" << std::endl;
+				return false;
+			}
+			_points[p][a] *= norm;
 			if (_points[p][a] != std::complex<double>(0.,0.)) {
 				_contributingWaves[p][counts[p]] = a;
 				++counts[p];
@@ -459,6 +528,29 @@ size_t logLikelihood::getSector(size_t a) const {
 	std::cout << "logLikelihood::getSector(...): ERROR: No sector found for amplitude index " << a << " (_nAmpl = " << _nAmpl << ")" << std::endl;
 	throw;
 	return 0;
+}
+
+bool logLikelihood::setNstore(size_t nStore) {
+	_nStore = nStore;
+	_storageLocation = 0;
+	_storeEvals = std::vector<double>(_nStore,0.);
+	_storeSteps = std::vector<double>(_nStore,0.);
+	return true;
+};
+
+std::pair<std::vector<double>, std::vector<double> > logLikelihood::getStoredPoints() const {
+	std::pair<std::vector<double>, std::vector<double> > retVal(std::vector<double>(_nStore,0.), std::vector<double>(_nStore,0.));
+	size_t  location = _storageLocation;
+	for (size_t s = 0; s < _nStore; ++s) {
+		retVal.first[s]  = _storeEvals[location];
+		retVal.second[s] = _storeSteps [location];
+		if (location > 0) {
+			--location;
+		} else {
+			location = _nStore - 1;
+		}
+	}
+	return retVal;
 }
 
 logLikelihoodAllFree::logLikelihoodAllFree (std::vector<double> binning, std::vector<std::shared_ptr<angularDependence> > freedAmplitudes, std::shared_ptr<integrator> integral) :

@@ -4,6 +4,8 @@
 #include<chrono>
 #include<ctime>
 #include<fstream>
+#include<iomanip>
+#include<limits>
 #include"massShape.h"
 #include"angularDependence.h"
 #include"amplitude.h"
@@ -32,9 +34,10 @@ int main(int argc, char *argv[]) {
 
 	srand(seed);
 	const int softpionSign = 0;
+	std::cout.precision(17);
+	const size_t integralPoints = 300000*10*10; // Ten times data set (efficiency is 0.1)
 
-	const size_t integralPoints = 300000*10*10; // Ten times data set (ecicciency is 0.1)
-
+	std::ofstream outFile;
 	std::cout << integralPoints << " integral points" << std::endl;
 	std::vector<double> fsMasses = {mPi, mKs, mPi};
 
@@ -51,6 +54,7 @@ int main(int argc, char *argv[]) {
 	std::shared_ptr<BELLE_D> D23 = std::make_shared<BELLE_D>(23);
 
 	const double binWidth = 0.04;
+	std::string integralFileName = "integral_finer_binning";
 
 	double m = mPi+ mKs;
 	std::vector<double> binningKpiS = {m*m};
@@ -180,10 +184,99 @@ int main(int argc, char *argv[]) {
 	size_t nAmpl                                    = amplitudes.size();
 	std::shared_ptr<threeParticleMassGenerator> gen = std::make_shared<threeParticleMassGenerator>(mD0, fsMasses, S12->kinSignature());
 	std::shared_ptr<efficiencyFunction> efficiency  = std::make_shared<BELLE_DtoKpipi_efficiency>();
+	std::vector<std::complex<double> > oldMin = utils::readComplexValuesFromTextFile("BELLE_sidebands_pi0_nsv_seed1533124364_ll-3894592.723834_N288410.143028.dat");
+
 	std::shared_ptr<integrator> integral            = std::make_shared<integrator>(integralPoints, gen, amplitudes, efficiency);
+	if (!integral->loadIntegrals("ps_" + integralFileName+"_regular.dat", "ac_" + integralFileName+"_regular.dat")) {
+		std::cout << "Could not load integrals" << std::endl;
+		return 1;
+	}
+
+	size_t rsz = 30;
+
+	integral->resize(rsz);
+	integral->setNonDiagToZero();
+	integral->writeToFile("ps_hae.dat", false);
+	integral->writeToFile("ac_hae.dat", true);
+
+	std::vector<std::vector<std::complex<double> > > ps(3, std::vector<std::complex<double> >(3, std::complex<double>(0.,0.)));
+	std::vector<std::vector<std::complex<double> > > ac(3, std::vector<std::complex<double> >(3, std::complex<double>(0.,0.)));
+	ps[0][0] = 3.;
+	ps[1][1] = 4.;
+	ps[2][2] = 5.;
+
+	ac[0][0] = 3.;
+	ac[1][1] = 5.;
+	ac[2][2] = 7.;
+
+	ac[1][2] = std::complex<double>(3., 111.);
+	ac[2][1] = std::complex<double>(3.,-111.);
+
+	ac[0][1] = std::complex<double>(123., 37.);
+	ac[1][0] = std::complex<double>(123.,-37.);;
+
+	ac[2][1] = std::complex<double> (42., 41.);
+	ac[1][2] = std::complex<double> (42.,-41.);
 
 
-	std::string integralFileName = "integral_finer_binning";
+	integral->setIntegrals(ps,ac);
+	std::vector<std::complex<double> > pa = oldMin;//  {std::complex<double>(11.,23.), std::complex<double>(13., 29.), std::complex<double> (17., 31.)};
+//	pa[0] = std::complex<double>(0.,0.); pa[2] = std::complex<double>(0.,0.);
+	pa.resize(rsz);
+
+	double tI = integral->totalIntensity(pa, true);
+	std::vector<std::complex<double> > paL = pa;
+	std::vector<std::complex<double> > paR = pa;
+
+	double LR =  integral->multiplyLR(paL, paR, true);
+
+	std::vector<double> DL = integral->DLmultiplyLR(paL, paR, true);
+	std::vector<double> DR = integral->DRmultiplyLR(paL, paR, true);
+
+	std::vector<double> nDL = integral->DLmultiplyLR(paL, paR, true);
+	std::vector<double> nDR = integral->DRmultiplyLR(paL, paR, true);
+
+	double delta = 1.;
+	for (size_t a = 0; a< paL.size(); ++a) {
+		paL[a] += std::complex<double>(delta, 0.);
+		nDL[2*a  ] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
+		paL[a] += std::complex<double>(-delta, delta);
+		nDL[2*a+1] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
+		paL[a] += std::complex<double>(0., -delta);
+		std::cout << nDL[2*a]/DL[2*a] << " LLL " << nDL[2*a+1]/DL[2*a+1] << std::endl;
+		paR[a] += std::complex<double>(delta, 0.);
+		nDR[2*a  ] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
+		paR[a] += std::complex<double>(-delta, delta);
+		std::cout << "(" << integral->multiplyLR(paL, paR, true) << " - " << LR <<")/" << delta << " = ";
+		nDR[2*a+1] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
+		std::cout << nDR[2*a+1] << std::endl;
+		paR[a] += std::complex<double>(0., -delta);
+		std::cout << nDR[2*a]/DR[2*a] << " RRR " << nDR[2*a+1]/DR[2*a+1] << std::endl;
+	}
+
+	return 0;
+
+	std::vector<double> D(2*pa.size());
+	std::vector<double> DD = integral->DtotalIntensity(pa, true);
+
+//	double deltaSmall = 1.e-5;
+	for (size_t i = 0; i < pa.size(); ++i) {
+		pa[i] += std::complex<double>(delta, 0.);		
+		D[2*i  ] = (integral->totalIntensity(pa, true)-tI)/delta;
+		pa[i] += std::complex<double>(-delta, delta);
+		D[2*i+1] = (integral->totalIntensity(pa, true)-tI)/delta;
+		pa[i] += std::complex<double>(0., -delta);
+
+//		pa[i] += std::complex<double>(deltaSmall, 0.);		
+//		D[2*i  ] = (integral->totalIntensity(pa, true)-tI)/deltaSmall;
+//		pa[i] += std::complex<double>(-deltaSmall, deltaSmall);
+//		D[2*i+1] = (integral->totalIntensity(pa, true)-tI)/deltaSmall;
+//		pa[i] += std::complex<double>(0., -deltaSmall);
+
+		std::cout << D[2*i  ] / DD[2*i ] << std::endl <<  D[2*i+1] / DD[2*i+1] << std::endl;
+	}
+	return 0;
+
 
 	bool doIntegration = false;
 
@@ -195,18 +288,65 @@ int main(int argc, char *argv[]) {
 		integral->writeToFile("ps_"+integralFileName+".dat", false);
 		integral->writeToFile("ac_"+integralFileName+".dat", true);
 
-		std::cout << "Integral files written... finished" << std::endl; 
+		std::cout << "Integral files written... finished" << std::endl;
 		return 0;
 	}
 	if (!integral->loadIntegrals("ps_" + integralFileName+"_regular.dat", "ac_" + integralFileName+"_regular.dat")) {
 		std::cout << "Could not load integrals" << std::endl;
 		return 1;
 	}
-	std::vector<std::vector<double> > dataPoints = getBELLEevents("./BELLE_data.root", softpionSign);
-	size_t nData = pow(dataPoints.size(),.5);
-/*	const size_t nData = dataPoints.size();
-	const size_t nAmpl = amplitudes.size();
-*/	std::vector<std::complex<double> > startValues(nAmpl);
+
+//	std::string BGfileName = "./BELLE_sidebands_pi0_nsv_seed1532622088_ll-3893334.857917.dat";
+//	std::string BGfileName = "./BELLE_sidebands_pi0_nsv_seed1532955121_ll-3894864.545268_N288407.215450.dat";
+//	std::vector<std::complex<double> > backgroundCoefficients = utils::readComplexValuesFromTextFile(BGfileName);
+
+	std::vector<double> norms;
+	{
+		std::pair<bool, std::vector<double> > retNorm = integral->getNormalizations();
+		if (!retNorm.first) {
+			std::cout << "ERROR: Could not get normalizations" << std::endl;
+			return 0;
+		}
+		norms = retNorm.second;
+	}
+	
+
+//	std::shared_ptr<amplitude> bg_amplitude = std::make_shared<modelAmplitude> (backgroundCoefficients, amplitudes, norms, "backgroundParamneterization");
+//	std::vector<std::shared_ptr<amplitude> > bg_amplitudes (1,bg_amplitude);
+//	std::shared_ptr<integrator> integral_bg = std::make_shared<integrator>(integralPoints, gen, bg_amplitudes, efficiency);
+
+//	integral_bg->integrate();
+//	integral_bg->writeToFile("ps_bg_integral.dat", false);
+//	integral_bg->writeToFile("ac_bg_integral.dat", true);
+//	return 0;
+
+//	if (!integral_bg->loadIntegrals("ps_bg_integral.dat","ac_bg_integral.dat")) {
+//		std::cout << "Could not load background integral" << std::endl;
+//		return 1;
+//	}
+
+//	std::cout << "Starting integration" << std::endl;
+//	integral_bg->integrate();
+//	std::cout << "Finished integration" << std::endl;
+
+//	integral_bg->writeToFile("ps_bg_integral.dat", false);
+//	integral_bg->writeToFile("ac_bg_integral.dat", true);
+
+//	std::cout << "Integral files written... finished" << std::endl;
+
+	bool signalEvents = false;
+
+	std::string dataFileName;
+	if (signalEvents) {
+		dataFileName = "./BELLE_data.root";
+	} else {
+		dataFileName = "./BELLE_bothSidebands.root";
+	}
+	std::vector<std::vector<double> > dataPoints = getBELLEevents(dataFileName, softpionSign);
+
+	const size_t nData = dataPoints.size();
+	std::vector<std::complex<double> > startValues(nAmpl);
+
 
 	// Only crude estimates for the resonance parameters to have nice start values with continuous phase motion
 
@@ -297,9 +437,8 @@ int main(int argc, char *argv[]) {
 		std::cout << "Number of initialized start values does not match " << count << " != " << nAmpl;
 		return 1;
 	}
-	std::ofstream outFile;
-
 //	outFile.open("startValueTest.deleteMe");
+//	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 //	for (size_t a = 0; a < startValues.size(); ++a) {
 //		outFile << a << " " << startValues[a].real() << " " << startValues[a].imag() << std::endl;
 //	}
@@ -308,6 +447,13 @@ int main(int argc, char *argv[]) {
 	bool parallel = false;
 	if (argc > 1) {
 		parallel = true;
+	}
+
+	std::string outFileNameBase;
+	if (signalEvents) {
+		outFileNameBase = "./BELLEfit";
+	} else {
+		outFileNameBase = "./BELLE_sidebands";
 	}
 
 	if (parallel) {
@@ -338,15 +484,17 @@ int main(int argc, char *argv[]) {
 		evalType finalEval = ll->eval(retVal.second);
 		std::cout << "Events in model: " << integral->totalIntensity(fitResultProdAmps,false) << " ::: " << integral->totalIntensity(fitResultProdAmps,true) << std::endl;
 
-		std::string outFileName = std::string("./BELLEfit_pi") + std::to_string(softpionSign) + std::string("_nsv_fabili_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(finalEval.value) + std::string(".dat");
+		std::string outFileName = outFileNameBase + std::string("_pi") + std::to_string(softpionSign) + std::string("_nsv_fabili_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(finalEval.value) + std::string(".dat");
 		outFile.open(outFileName.c_str());
+		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 		for (std::complex<double>& amp : fitResultProdAmps) {
 			outFile << amp << std::endl;
 		}
 		outFile.close();
 
-		outFileName = std::string("./BELLEfit_hessian_") + std::to_string(seed) + std::string(".dat");
+		outFileName =  outFileNameBase + std::string("_hessian_") + std::to_string(seed) + std::string(".dat");
 		outFile.open(outFileName.c_str());
+		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 		for (size_t i = 0; i < 2*ll->nAmpl(); ++i) {
 			for (size_t j = 0; j < 2*ll->nAmpl(); ++j) {
 				outFile << finalEval.hessian(i,j) << " ";
@@ -360,20 +508,39 @@ int main(int argc, char *argv[]) {
 		logLikelihood ll(amplitudes, integral);
 		ll.loadDataPoints(dataPoints);
 		ll.setExtended(true);
+//		ll.setNstore(10000);
+
+		double minEval = ll.eval(oldMin);
+		double numGradElement = 0.;
+		double delta   = 1.e-6;
+		std::vector<double> minGrad = ll.Deval(oldMin);
+		std::vector<double> numGrad(minGrad.size());
+		for (size_t a = 0; a < oldMin.size(); ++a) {
+			oldMin[a] += std::complex<double>(delta,0.);
+			numGradElement = (ll.eval(oldMin) - minEval)/delta;
+			std::cout << numGradElement << " | | | " << minGrad[2*a  ] << std::endl;
+			oldMin[a] += std::complex<double>(-delta,delta);
+			numGradElement = (ll.eval(oldMin) - minEval)/delta;
+			std::cout << numGradElement << " | | | " << minGrad[2*a+1] << std::endl;
+			oldMin[a] += std::complex<double>(0.,-delta);
+			numGradElement += numGradElement;
+		}
+		return 0;
 
 		std::pair<double, std::vector<std::complex<double> > > retVal = ll.fitNlopt(startValues);
 
 
-		std::string outFileName = std::string("./BELLEfit_pi") + std::to_string(softpionSign) + std::string("_nsv_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(retVal.first) + std::string(".dat");
+		std::string outFileName = outFileNameBase + std::string("_pi") + std::to_string(softpionSign) + std::string("_nsv_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(retVal.first) + std::string("_N")+std::to_string(integral->totalIntensity(retVal.second, true)) + std::string(".dat");
 		outFile.open(outFileName.c_str());
+		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 		for (std::complex<double>& amp : retVal.second) {
 			outFile << amp << std::endl;
 		}
 		outFile.close();
-
 		std::vector<std::vector<double> > hessian = ll.DDeval(retVal.second);
-		outFileName = std::string("./BELLEfit_hessian_") + std::to_string(seed) + std::string(".dat");
+		outFileName = outFileNameBase + std::string("_hessian_") + std::to_string(seed) + std::string(".dat");
 		outFile.open(outFileName.c_str());
+		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 		for (size_t i = 0; i < 2*ll.nAmpl(); ++i) {
 			for (size_t j = 0; j < 2*ll.nAmpl(); ++j) {
 				outFile << hessian[i][j] << " ";

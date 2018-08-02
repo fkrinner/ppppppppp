@@ -17,7 +17,7 @@ amplitude(amplitudes.at(0)->kinSignature(), name)
 	}
 	_amplitudes = amplitudes;
 	if (amplitudes.size() != transitionAmplitudes.size()) {
-		std::cerr << "modelAmplitude::modelAmplitude(...): ERROR: size of trnasitions amplitudes does not match" << std::endl;
+		std::cerr << "modelAmplitude::modelAmplitude(...): ERROR: size of transitions amplitudes does not match" << std::endl;
 		throw;
 	}
 	_transitionAmplitudes = transitionAmplitudes;
@@ -36,8 +36,12 @@ std::complex<double> modelAmplitude::eval(const std::vector<double>& kin) const 
 
 	std::complex<double> retVal(0.,0.);
 	for (size_t a = 0; a < _nAmpl; ++a) {
+//		std::cout << a << " :: :: :::::: " << std::endl;
+//		std::cout << _transitionAmplitudes[a] << " * " <<_amplitudes[a]->eval(kin) << " * "  <<  _normalizations[a] << " = " << _transitionAmplitudes[a] * _amplitudes[a]->eval(kin) * _normalizations[a];
 		retVal += _transitionAmplitudes[a] * _amplitudes[a]->eval(kin) * _normalizations[a];
+//		std::cout << " -> "  << retVal << std::endl;
 	}
+//	std::cout << " - E - V - A - L - - - F - I - N - I - S - H - E - D - " << std::endl;
 	return retVal;
 }
 
