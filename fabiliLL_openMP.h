@@ -9,7 +9,5 @@ class fabiliLL_openMP : public logLikelihood, public fabiliFunction {
 
 		double scalarEval(const std::vector<double>& parameters) const override;
 		evalType eval(const std::vector<double>& parameters) const override;
-
-		size_t dim() const override {return getNpar();}
 };
 #endif//FABILILL_OMP__

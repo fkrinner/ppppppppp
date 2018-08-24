@@ -55,4 +55,14 @@ class zeroMode1mm : public massShape {
 
 		std::complex<double> eval (double s) const override;
 };
+
+class polynomialMassShape : public massShape {
+	public:
+		polynomialMassShape(std::vector<std::complex<double> > coefficients, double baseExponent = 1.);
+
+		std::complex<double> eval (double s) const override;
+	protected:
+		size_t _polDeg;
+		double _baseExponent;	
+};
 #endif//MASSSHAPE__

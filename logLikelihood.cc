@@ -1,5 +1,9 @@
 #include"logLikelihood.h"
+
 #include<string>
+#include<limits>
+#include<cmath>        // std::abs
+
 #include<nlopt.hpp>
 //#include<fstream>
 
@@ -10,7 +14,7 @@ double ff_nlopt(const std::vector<double> &x, std::vector<double> &grad, void* f
 }
 
 logLikelihoodBase::logLikelihoodBase (size_t nAmpl, std::shared_ptr<kinematicSignature> kinSignature, std::shared_ptr<integrator> integral) : 
-	_fixFirstPhase(false), _extended(true), _kinSignature(kinSignature), _nCalls(0), _nCallsPrint(10000), _nAmpl(nAmpl), _nPoints(0), _integral(integral) {
+	_extended(true), _kinSignature(kinSignature), _nCalls(0), _nCallsPrint(10000), _nAmpl(nAmpl), _nPoints(0), _nScale(0), _integral(integral), _fixedParameters(), _copyParameters() {
 	if (_nAmpl == 0) {
 		std::cout << "logLikelihoodBase::logLikelihoodBase(...): ERROR: No amplitudes given" << std::endl;
 		throw;
@@ -35,59 +39,37 @@ std::pair<double, std::vector<std::complex<double> > > logLikelihoodBase::fitNlo
 	nlopt::opt opt = nlopt::opt(nlopt::LD_LBFGS, getNpar());
 //	opt.set_ftol_abs(1.E-14);
 	opt.set_min_objective(ff_nlopt, this);
-	std::vector<double> startPars(getNpar());
-	size_t skip = 0;
-	if (_fixFirstPhase) {
-		startPars[0] = parameters[0].real();
-		skip = 1;
-	} else {
-		startPars[0] = parameters[0].real();
-		startPars[1] = parameters[0].imag();
-		skip = 2;
-	}
-	for (size_t a = 1; a < _nAmpl; ++a) {
-		startPars[2*a-2+skip] = parameters[a].real();
-		startPars[2*a-1+skip] = parameters[a].imag();
-	}
+	std::vector<double> startPars = getFinalParams(prodAmpsToFullParams(parameters));
 	double bestVal;
 	int optimization_result  = opt.optimize(startPars, bestVal);
-
 	std::cout << "optimization status: " <<  optimization_result << std::endl;
 	if (optimization_result == 1) {
-		std:: cout << " - nlopt status: NLOPT_SUCCESS" << std::endl;
+		std::cout << " - nlopt status: NLOPT_SUCCESS" << std::endl;
 	} else if ( optimization_result == 2 ) {
-		std:: cout << " - nlopt status: NLOPT_STOPVAL_REACHED" << std::endl;
+		std::cout << " - nlopt status: NLOPT_STOPVAL_REACHED" << std::endl;
 	} else if ( optimization_result == 3 ) {
-		std:: cout << " - nlopt status: NLOPT_FTOL_REACHED" << std::endl;
+		std::cout << " - nlopt status: NLOPT_FTOL_REACHED" << std::endl;
 	} else if ( optimization_result == 4 ) {
-		std:: cout << " - nlopt status: NLOPT_XTOL_REACHED" << std::endl;
+		std::cout << " - nlopt status: NLOPT_XTOL_REACHED" << std::endl;
 	} else if ( optimization_result == 5 ) {
-		std:: cout << " - nlopt status: NLOPT_MAXEVAL_REACHED" << std::endl;
+		std::cout << " - nlopt status: NLOPT_MAXEVAL_REACHED" << std::endl;
 	} else if ( optimization_result == 6 ) {
-		std:: cout << " - nlopt status: NLOPT_MAXTIME_REACHED" << std::endl;
+		std::cout << " - nlopt status: NLOPT_MAXTIME_REACHED" << std::endl;
 	} else if ( optimization_result == -1 ) {
-		std:: cout << " - nlopt status: NLOPT_FAILURE" << std::endl;
+		std::cout << " - nlopt status: NLOPT_FAILURE" << std::endl;
 	} else if ( optimization_result == -2 ) {
-		std:: cout << " - nlopt status: NLOPT_INVALID_ARGS" << std::endl;
+		std::cout << " - nlopt status: NLOPT_INVALID_ARGS" << std::endl;
 	} else if ( optimization_result == -3 ) {
-		std:: cout << " - nlopt status: NLOPT_OUT_OF_MEMORY" << std::endl;
+		std::cout << " - nlopt status: NLOPT_OUT_OF_MEMORY" << std::endl;
 	} else if ( optimization_result == -4 ) {
-		std:: cout << " - nlopt status: NLOPT_ROUNDOFF_LIMITED" << std::endl;
+		std::cout << " - nlopt status: NLOPT_ROUNDOFF_LIMITED" << std::endl;
 	} else if ( optimization_result == -5 ) {
-		std:: cout << " - nlopt status: NLOPT_FORCED_STOP" << std::endl;
+		std::cout << " - nlopt status: NLOPT_FORCED_STOP" << std::endl;
 	} else {
 		std::cout << " - Unknown nlopt status: " << optimization_result << std::endl;
 	}
 
-	std::vector<std::complex<double> >retVal(_nAmpl);
-	if (_fixFirstPhase) { // skip is already set accordingly
-		retVal[0] = std::complex<double>(startPars[0], 0.);
-	} else {
-		retVal[0] = std::complex<double>(startPars[0], startPars[1]);
-	}
-	for (size_t a = 1; a < _nAmpl; ++a) {
-		retVal[a] = std::complex<double>(startPars[2*a-2+skip], startPars[2*a-1+skip]);
-	}
+	std::vector<std::complex<double> > retVal = fullParamsToProdAmps(getFullParameters(startPars));
 //	std::cout << "The fit gave a best value of " << bestVal << std::endl;
 	return std::pair<double, std::vector<std::complex<double> > >(bestVal, retVal);
 }
@@ -97,38 +79,296 @@ double logLikelihoodBase::nloptCall(const std::vector<double> &x, std::vector<do
 		std::cerr << "logLikelihood::nloptCall(...): ERROR: Nomber of amplitudes does not match" << std::endl;
 		throw;
 	}
-	std::vector<std::complex<double> > prodAmps(_nAmpl);
-	size_t skip = 0;
-	if (_fixFirstPhase) {
-		prodAmps[0] = std::complex<double>(x[0], 0.);
-		skip = 1;
-	} else {
-		prodAmps[0] = std::complex<double>(x[0], x[1]);
-		skip = 2;
-	}
-	for (size_t a = 1; a < _nAmpl; ++a) {
-		prodAmps[a] = std::complex<double>(x[2*a-2+skip],x[2*a-1+skip]);
-	}
+	std::vector<std::complex<double> > prodAmps = fullParamsToProdAmps(getFullParameters(x));
 	if (grad.size() > 0) {
-		std::vector<double> diff = Deval(prodAmps);
-		grad[0] = diff[0];
-		if (not _fixFirstPhase) { // Skip is already set accordingly
-			grad[1] = diff[1];
-		}
-		for (size_t a = 1; a < _nAmpl; ++a) {
-			grad[2*a-2+skip] = diff[2*a  ];
-			grad[2*a-1+skip] = diff[2*a+1];
-		}
+		grad = makeFinalGradient(x,Deval(prodAmps));
 	}
 	return eval(prodAmps);
 }
 
-size_t logLikelihoodBase::getNpar() const {
-	size_t retVal = 2*_nAmpl;
-	if (_fixFirstPhase) {
-		retVal -= 1;
+std::vector<double> logLikelihoodBase::makeFinalGradient(const std::vector<double>& params, const std::vector<double>& fullGradient) const {
+
+	const size_t nPar         = getNpar();
+	const size_t nParTot      = getNparTot();
+	const size_t nParNonScale = nParTot - _fixedParameters.size();
+
+	if (params.size() != nPar) {
+		std::cout << "logLikelihoodBase::makeFinalGradient(...): ERROR: Wrong parameter size." << std::endl;
+		throw;
+	}
+
+	std::vector<double> fullParams;
+	if (_nScale > 0) {
+		fullParams = getFullParameters(params);
+	}
+
+	std::vector<double> scaleGradients(_nScale, 0.);
+	std::vector<double> modifiedGradient = fullGradient;
+	for (std::tuple<size_t, size_t, int, double> copy : _copyParameters) { // First: modify the entries of the gradient corresponding to the actual parameters & collect the gradient for the scale parameters
+		int scl = std::get<2>(copy);
+		double scaler = std::get<3>(copy);
+		if (scl > -1) {
+			scaleGradients[scl] += fullGradient[std::get<0>(copy)] * fullParams[std::get<1>(copy)]*scaler;
+			scaler *= params[nParNonScale + scl];
+		}
+		modifiedGradient[std::get<1>(copy)] += fullGradient[std::get<0>(copy)] * scaler;
+	}
+
+	modifiedGradient = getFinalParams(modifiedGradient); // Second: Cut away the fixed parameters from the grandient (this leaves the gradient entries for the scale parameters with odd values)
+	for (size_t s = 0; s < _nScale; ++s) {
+		modifiedGradient[nParNonScale+s] = scaleGradients[s]; // Third: Fix the grandient entries for the scale parameters 
+	}
+	return modifiedGradient;
+
+}
+
+std::vector<std::vector<double> > logLikelihoodBase::makeFinalHessian(const std::vector<double>& params, const std::vector<std::vector<double> >& fullHessian) const {
+
+	const size_t nPar = getNpar();
+	const size_t nParTot = getNparTot();
+	const size_t nParNonScale = nParTot - _fixedParameters.size();
+
+	std::vector<double> fullParams;
+	if (_nScale > 0) {
+		fullParams = getFullParameters(params);
+	}
+	std::vector<std::vector<double> > modifiedHessian(fullHessian.size());
+// Do eveything for lines first (interprete the hessian as a list of gradients)
+	for (size_t p = 0; p < fullHessian.size(); ++p) {
+		std::vector<double> scaleGradients(_nScale, 0.);
+		std::vector<double> modifiedGradient = fullHessian[p];
+		for (std::tuple<size_t, size_t, int, double> copy : _copyParameters) { // First: modify the entries of the gradient corresponding to the actual parameters & collect the gradient for the scale parameters
+			int scl = std::get<2>(copy);
+			double scaler = std::get<3>(copy);
+			if (scl > -1) {
+				scaleGradients[scl] += fullHessian[p][std::get<0>(copy)] * fullParams[std::get<1>(copy)]*scaler;
+				scaler *= params[nParNonScale + scl];
+			}
+			modifiedGradient[std::get<1>(copy)] += fullHessian[p][std::get<0>(copy)] * scaler;
+		}
+		modifiedGradient = getFinalParams(modifiedGradient); // Second: Cut away the fixed parameters from the grandient (this leaves the gradient entries for the scale parameters with odd values)
+		for (size_t s = 0; s < _nScale; ++s) {
+			modifiedGradient[nParNonScale+s] = scaleGradients[s]; // Third: Fix the grandient entries for the scale parameters 
+		}
+		modifiedHessian[p] = modifiedGradient;
+	}
+// The do the same for columns (then turn around this interpretation)
+	std::vector<std::vector<double> > retVal(nPar);
+	for (size_t p = 0; p < nPar; ++p) {
+		std::vector<double> scaleGradients(_nScale, 0.);
+		std::vector<double> modifiedGradient(nParTot);
+		for (size_t i = 0; i < nParTot; ++i) {
+		 	modifiedGradient[i] = modifiedHessian[i][p];
+		}
+		for (std::tuple<size_t, size_t, int, double> copy : _copyParameters) { // First: modify the entries of the gradient corresponding to the actual parameters & collect the gradient for the scale parameters
+			int scl = std::get<2>(copy);
+			double scaler = std::get<3>(copy);
+			if (scl > -1) {
+				scaleGradients[scl] += modifiedHessian[std::get<0>(copy)][p] * fullParams[std::get<1>(copy)]*scaler;
+				scaler *= params[nParNonScale + scl];
+			}
+			modifiedGradient[std::get<1>(copy)] += modifiedHessian[std::get<0>(copy)][p] * scaler;
+		}
+		modifiedGradient = getFinalParams(modifiedGradient); // Second: Cut away the fixed parameters from the grandient (this leaves the gradient entries for the scale parameters with odd values)
+		for (size_t s = 0; s < _nScale; ++s) {
+			modifiedGradient[nParNonScale+s] = scaleGradients[s]; // Third: Fix the grandient entries for the scale parameters 
+		}
+		retVal[p] = modifiedGradient;
 	}
 	return retVal;
+}
+
+
+size_t logLikelihoodBase::getNparTot() const {
+	size_t retVal = 2*_nAmpl;
+	return retVal;
+}
+
+size_t logLikelihoodBase::getNpar() const {
+	size_t retVal = getNparTot() - _fixedParameters.size() + _nScale;
+	return retVal;
+}
+
+std::vector<double> logLikelihoodBase::getFullParameters(const std::vector<double>& params) const {
+	const size_t nPar = getNpar();
+	const size_t nParTot = getNparTot();
+	if (params.size() != nPar) {
+		std::cout << "logLikelihoodBase::getFullParameters(...): ERROR: Parameter size mismatch: " << params.size() << " should be " << nPar << std::endl;
+		throw;
+	}
+	std::vector<double> retVal(nParTot);
+	size_t nextFixed = nParTot;
+	if (_fixedParameters.size() > 0) {
+		nextFixed = _fixedParameters[0].first;
+	}
+	size_t fixCount  = 0;
+	size_t parCount  = 0;
+	for (size_t p = 0; p < nParTot; ++p) {
+		if (p == nextFixed) {
+			retVal[p] = _fixedParameters[fixCount].second;
+			++fixCount;
+			if (fixCount == _fixedParameters.size()) {
+				nextFixed = nParTot;
+			} else {
+				nextFixed = _fixedParameters[fixCount].first;
+			}
+		} else {
+			retVal[p] = params[parCount];
+			++parCount;
+		}
+	}
+	for (std::tuple<size_t, size_t, int, double> copy : _copyParameters) {
+		retVal[std::get<0>(copy)] = retVal[std::get<1>(copy)] * std::get<3>(copy);
+		if (std::get<2>(copy) > -1) {
+			retVal[std::get<0>(copy)] *= params[parCount + std::get<2>(copy)];
+		}	
+	}
+//	parCount += _nScale; // do this, if a third type of parameter should appear
+	return retVal;
+}
+
+std::vector<double> logLikelihoodBase::getFinalParams(const std::vector<double>& params) const {
+	const size_t nPar = getNpar();
+	const size_t nParTot = getNparTot();
+	if (params.size() != nParTot) {
+		std::cout << "logLikelihoodBase::getFinalParams(...): ERROR: Parameter size mismatch: " << params.size() << " should be " << nParTot << std::endl;
+		throw;
+	}
+	std::vector<double> retVal(nPar);
+	size_t nextFixed = nParTot;
+	if (_fixedParameters.size() > 0) {
+		nextFixed = _fixedParameters[0].first;
+	}
+	size_t fixCount  = 0;
+	size_t parCount  = 0;
+	for (size_t p = 0; p < nParTot; ++p) {
+		if (p == nextFixed) {
+			++fixCount;
+			if (fixCount == _fixedParameters.size()) {
+				nextFixed = nParTot;
+			} else {
+				nextFixed = _fixedParameters[fixCount].first;
+			}
+		} else {
+			retVal[parCount] = params[p];
+			++parCount;
+		}
+	}
+	std::vector<bool> scalesSet(_nScale, false);
+	size_t nScalesSet = 0;
+	for (std::tuple<size_t, size_t, int, double> copy : _copyParameters) {
+		int scl = std::get<2>(copy);
+		if (scl > -1) {
+			if (!scalesSet[scl]) {
+				double from = params[std::get<1>(copy)];
+				if (from == 0.) {
+					continue;
+				}
+				double to   = params[std::get<0>(copy)];
+				retVal[parCount+scl] = to/from/std::get<3>(copy);
+				scalesSet[scl] = true;
+				++nScalesSet;
+			}
+		}
+		if (nScalesSet == _nScale) {
+			break;
+		}
+	}
+//	parCount += _nScale; // do this, if a third type of parameter should appear
+	return retVal;
+}
+
+bool logLikelihoodBase::fixParameter(size_t nPar, double value) {
+	if (nPar >= getNparTot()) {
+		std::cout << "logLikelihoodBase::fixParameter(...): ERROR: Parameter number too large." << std::endl;
+		return false;
+	}
+	std::vector<std::pair<size_t, double> > newFixedPars;
+	bool appended = false;
+	for (std::pair<size_t, double> fixed : _fixedParameters) {
+		if (fixed.first == nPar) {
+			std::cout << "logLikelihoodBase::fixParameter(...): ERROR: Parameter " << nPar << " already fixed" << std::endl;
+			return false;
+		}
+		if (fixed.first > nPar and !appended) {
+			newFixedPars.push_back(std::pair<size_t, double>(nPar, value));
+			appended = true;
+		}
+		newFixedPars.push_back(fixed);
+	}
+	if (!appended)  {
+		newFixedPars.push_back(std::pair<size_t, double>(nPar, value));
+	}
+	_fixedParameters = newFixedPars;
+	return true;
+}
+
+bool logLikelihoodBase::addCopyParameter(size_t nPar, size_t copyFrom, int nScale, double scaler) {
+	if (nScale < -1) {
+		std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: Invalid value for nScale" << std::endl;
+	}
+	if (scaler == 0.) {
+		std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: Encountered a scaler of zero (fix parameter to zero instead)" << std::endl;
+		return false;
+	}
+	const size_t nParTot = getNparTot();
+	if (nPar >= nParTot){
+		std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: nPar > nParTot" << std::endl;
+		return false;
+	}
+	if (copyFrom >= nParTot) {
+		std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: nPar > nParTot" << std::endl;
+		return false;		
+	}
+	for (std::tuple<size_t, size_t, int, double> copy : _copyParameters) {
+		if (std::get<0>(copy) == copyFrom) {
+			std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: Cannot copy from a copied parameter" << std::endl;
+			return false;
+		}
+	}
+	if (!fixParameter(nPar, std::numeric_limits<double>::quiet_NaN())) { // Set to NaN, since it will have to be overwritten
+		std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: Could not fix the parameter to NaN" << std::endl;
+		return false;
+	}
+	if (nScale > -1) {
+		if (nScale > (int)_nScale) {
+			std::cout << "logLikelihoodBase::addCopyParameter(...): ERROR: nScale skipped (Would introduce an unused scale parameter) (nScale = " << nScale << ", _nScale = "<< _nScale << ")" << std::endl;
+			return false;
+		}
+		if ((size_t)nScale == _nScale) {
+			++_nScale; // Add additional scale parameter
+		}
+		
+	}
+	_copyParameters.push_back(std::tuple<size_t, size_t, int, double>(nPar, copyFrom, nScale, scaler));
+	return true;
+}
+
+std::vector<std::complex<double> > logLikelihoodBase::fullParamsToProdAmps(const std::vector<double>& params) const {
+	if (params.size() != getNparTot()) {
+		std::cout << "logLikelihoodBase::fullParamsToProdAmps(...): ERROR: Parameter size mismatch: " << params.size() << " should be " << getNparTot() << std::endl;
+		throw;
+	}
+
+	std::vector<std::complex<double> > prodAmps(_nAmpl);
+	for(size_t a = 0; a < _nAmpl; ++a) {
+		prodAmps[a] = std::complex<double>(params[2*a], params[2*a+1]);
+	}
+	return prodAmps;
+}
+
+
+std::vector<double> logLikelihoodBase::prodAmpsToFullParams(const std::vector<std::complex<double> >& prodAmps) const {
+	if (prodAmps.size() != _nAmpl) {
+		std::cout << "logLikelihoodBase::prodAmpsToFullParams(...): ERROR: Parameter size mismatch: " << prodAmps.size() << " should be " << _nAmpl << std::endl;
+		throw;
+	}
+	std::vector<double> params(2*_nAmpl);
+	for (size_t a = 0; a < _nAmpl; ++a) {
+		params[2*a  ] = prodAmps[a].real();
+		params[2*a+1] = prodAmps[a].imag();
+	}
+	return params;
 }
 
 /*
@@ -234,7 +474,7 @@ double logLikelihood::operator()(const double* parameters) const {
 */
 
 logLikelihood::logLikelihood(std::vector<std::shared_ptr<amplitude> > amplitudes, std::shared_ptr<integrator> integral) :
-	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _nSect(1), _amplitudes(amplitudes), _points(), _amplitudeCoherenceBorders(0), _contributingWaves(0),
+	logLikelihoodBase(amplitudes.size(), integral->kinSignature(), integral), _nSect(1), _maximumIncoherentIntensity(0.), _amplitudes(amplitudes), _points(), _amplitudeCoherenceBorders(0), _contributingWaves(0),
         _nStore(0), _storageLocation(0), _lastPar(), _storeEvals(), _storeSteps() {
 	if (_amplitudes.size() == 0) {
 		std::cerr << "logLikelihood::logLikelihood(...): ERROR: No amplitudes given" << std::endl;
@@ -272,6 +512,11 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 //	std::ofstream outFile;
 //	std::string outFileName = "was_geschicht_"+std::to_string(_nAmpl)+".deleteMe";
 //	outFile.open(outFileName.c_str());
+
+	double apa = 0.;
+	for (std::complex<double> PA : prodAmps) {
+		apa += norm(PA);
+	}
 	if (prodAmps.size() != _nAmpl) {
 		std::cerr << "logLikelihood::eval(...): ERROR: Number of production amplitudes does not match" << std::endl;
 		throw; // Throw here, since a ll = 0. could confuse the program
@@ -293,16 +538,16 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 		intens += norm(ampl); // Do also for the last sector
 		ll += log(intens);
 	}
-	return -ll;
+//double imll = ll;
+//std::cout << " i n t e r m e d i a r y " << imll << std::endl;
+
 	if (_extended) {
 		ll -= _integral->totalIntensity(prodAmps, true);
 	} else {
 		ll -= log(_integral->totalIntensity(prodAmps, true))*(double)_nPoints;
 	}
-	++_nCalls;
-	if (_nCalls%_nCallsPrint == 0) {
-		std::cout << "call #" << _nCalls << " like " << -ll << std::endl;
-	}
+//std::cout << " d e l t a l l " << ll - imll << std::endl;
+//std::cout << " - - - - - - - - - - - - - -" << std::endl;
 	if (_nStore > 0) {
 		if (_lastPar.size() > 0) {
 			_storeEvals[_storageLocation] = -ll;
@@ -317,6 +562,20 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 			}
 		}
 		_lastPar = prodAmps;
+	}
+	if (_maximumIncoherentIntensity >0. ){
+		double incoherentIntensity = 0.;
+		for (std::complex<double> pa : prodAmps) {
+			incoherentIntensity += norm(pa);
+		}
+		if (incoherentIntensity > _maximumIncoherentIntensity) {
+//			std::cout << " es ist soweit " << incoherentIntensity << std::endl;
+			ll -= pow(incoherentIntensity - _maximumIncoherentIntensity,2);
+		}
+	}
+	++_nCalls;
+	if (_nCalls%_nCallsPrint == 0) {
+		std::cout << "call #" << _nCalls << " like " << -ll << std::endl;
 	}
 	return -ll;
 }
@@ -355,10 +614,7 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 			retVal[2*a+1] += factor.imag(); // Two factors of -1: Complex i*i = -1 and since the NEGATIVE likelihood is used
 		}
 	}
-//	_integral->setNonDiagToZero();
-
-	return retVal;
-
+//	_integral->setNonDiagToZero(); 
 	std::vector<double> Dintegral = _integral->DtotalIntensity(prodAmps, true);
 	
 	double totInt = _integral->totalIntensity(prodAmps, true);
@@ -381,6 +637,19 @@ std::vector<double> logLikelihood::Deval(std::vector<std::complex<double> >& pro
 		double totalIntens = _integral->totalIntensity(prodAmps, true);
 		for (size_t a = 0; a< 2*_nAmpl; ++a) {
 			retVal[a] += Dintegral[a]/totalIntens*(double)_nPoints;
+		}
+	}
+	if (_maximumIncoherentIntensity > 0. ){
+		double incoherentIntensity = 0.;
+		for (std::complex<double> pa : prodAmps) {
+			incoherentIntensity += norm(pa);
+		}
+		if (incoherentIntensity > _maximumIncoherentIntensity) {
+			double fakk = 4*(incoherentIntensity - _maximumIncoherentIntensity);
+			for (size_t a = 0; a < _nAmpl; ++a) {
+				retVal[2*a  ] += fakk*prodAmps[a].real();
+				retVal[2*a+1] += fakk*prodAmps[a].imag();
+			}
 		}
 	}
 	return retVal;
@@ -454,6 +723,25 @@ std::vector<std::vector<double> > logLikelihood::DDeval(std::vector<std::complex
 		for (size_t i = 0; i < 2*_nAmpl; ++i) {
 			for (size_t j = 0; j < 2*_nAmpl; ++j) {
 				retVal[i][j] += (DDintegral[i][j]/totalIntens - Dintegral[i]*Dintegral[j]/totalIntens/totalIntens)*(double)_nPoints;
+			}
+		}
+	}
+	if (_maximumIncoherentIntensity > 0. ){
+		double incoherentIntensity = 0.;
+		for (std::complex<double> pa : prodAmps) {
+			incoherentIntensity += norm(pa);
+		}
+		if (incoherentIntensity > _maximumIncoherentIntensity) {
+			double fakk = 4*(incoherentIntensity - _maximumIncoherentIntensity);
+			for (size_t a = 0; a < _nAmpl; ++a) {
+				retVal[2*a  ][2*a  ] += fakk;
+				retVal[2*a+1][2*a+1] += fakk;
+				for (size_t b = 0; b < _nAmpl; ++b) {
+					retVal[2*a  ][2*b  ] += 8*prodAmps[a].real()*prodAmps[b].real();
+					retVal[2*a+1][2*b  ] += 8*prodAmps[a].imag()*prodAmps[b].real();
+					retVal[2*a  ][2*b+1] += 8*prodAmps[a].real()*prodAmps[b].imag();
+					retVal[2*a+1][2*b+1] += 8*prodAmps[a].imag()*prodAmps[b].imag();
+				}
 			}
 		}
 	}
@@ -536,7 +824,7 @@ bool logLikelihood::setNstore(size_t nStore) {
 	_storeEvals = std::vector<double>(_nStore,0.);
 	_storeSteps = std::vector<double>(_nStore,0.);
 	return true;
-};
+}
 
 std::pair<std::vector<double>, std::vector<double> > logLikelihood::getStoredPoints() const {
 	std::pair<std::vector<double>, std::vector<double> > retVal(std::vector<double>(_nStore,0.), std::vector<double>(_nStore,0.));
@@ -606,7 +894,7 @@ bool logLikelihoodAllFree::loadDataPoints(const std::vector<std::vector<double> 
 			std::cout << "logLikelihood::loadDataPoints(...): ERROR: Bin not found" << std::endl;
 			return false;
 		}
-		_eventsPerBin[bin.second.first][bin.second.second] += 1;
+		_eventsPerBin[bin.second.first][bin.second.second]        += 1;
 		averageMasses[bin.second.first][bin.second.second].first  += point[1];
 		averageMasses[bin.second.first][bin.second.second].second += point[2];
 	}
@@ -654,7 +942,7 @@ std::pair<bool, std::pair<size_t, size_t> > logLikelihoodAllFree::findBin(const 
 			found2 = true;
 			bin2   = b;
 		}
-		if (found1 and found2) { // This breaks the total check of the binnig, i.e. if a secod bin would be found, but ordering is checked in the constuctor anyway...
+		if (found1 and found2) { // This breaks the total check of the binnig, i.e. if a second bin would be found, but ordering is checked in the constuctor anyway...
 			break;
 		}
 	}

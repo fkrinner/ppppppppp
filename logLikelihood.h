@@ -25,21 +25,34 @@ class logLikelihoodBase {
 		virtual bool                                           loadDataPoints (const std::vector<std::vector<double> >& dataPoints) 
                                                                        {std::cout << "No loadDataPoints(...) method specified. Do not load " << dataPoints.size() << " points" << std::endl; return false;}
 
-		bool                    setFixFirstPhase (bool flag)                {_fixFirstPhase = flag; return true;}
-		bool                    fixFirstPhase    ()                   const {return _fixFirstPhase;}
-		bool                    setExtended      (bool flag)                {_extended = flag; return true;}
-		size_t                  getNpar          ()                   const;
-		size_t                  nAmpl            ()                   const {return _nAmpl;}
-		size_t                  nCalls           ()                   const {return _nCalls;}
+		bool                    setNcallsPrint    (size_t nCallPrint)        {_nCallsPrint = nCallPrint; return true;}
+		bool                    setExtended       (bool flag)                {_extended = flag; return true;}
+		bool                    fixParameter      (size_t nPar, double value);
+		bool                    addCopyParameter  (size_t nPar, size_t copyFrom, int nScale = -1, double scaler = 1.);
+		size_t                  getNparTot        ()                   const;
+		size_t                  getNpar           ()                   const;
+		size_t                  nAmpl             ()                   const {return _nAmpl;}
+		size_t                  nCalls            ()                   const {return _nCalls;}
+
+		std::vector<double>                getFullParameters(const std::vector<double>& params) const;
+		std::vector<double>                getFinalParams( const std::vector<double>& params) const;
+
+		std::vector<std::complex<double> > fullParamsToProdAmps(const std::vector<double>& params                 ) const;
+		std::vector<double>                prodAmpsToFullParams(const std::vector<std::complex<double> >& prodAmps) const;
+
+		std::vector<double> makeFinalGradient(const std::vector<double>& params, const std::vector<double>& fullGradient) const;
+		std::vector<std::vector<double> > makeFinalHessian(const std::vector<double>& params, const std::vector<std::vector<double> >& fullHessian) const;
 	protected:
-		bool                                             _fixFirstPhase;
-		bool                                             _extended;
-		std::shared_ptr<kinematicSignature>              _kinSignature;
-		mutable size_t                                   _nCalls;
-		size_t                                           _nCallsPrint;
-		size_t                                           _nAmpl;
-		size_t                                           _nPoints;
-		std::shared_ptr<integrator>                      _integral;
+		bool                                                _extended;
+		std::shared_ptr<kinematicSignature>                 _kinSignature;
+		mutable size_t                                      _nCalls;
+		size_t                                              _nCallsPrint;
+		size_t                                              _nAmpl;
+		size_t                                              _nPoints;
+		size_t                                              _nScale; // Number of scale parameters
+		std::shared_ptr<integrator>                         _integral;
+		std::vector<std::pair<size_t,double> >              _fixedParameters;
+		std::vector<std::tuple<size_t,size_t,int, double> > _copyParameters;
 };
 
 class logLikelihood : public logLikelihoodBase {
@@ -55,9 +68,11 @@ class logLikelihood : public logLikelihoodBase {
 		bool                                                   setCoherenceBorders(std::vector<size_t> borders);
 
 		bool                    setNstore        (size_t nStore);
-		std::pair<std::vector<double>, std::vector<double> > getStoredPoints() const;
+		bool                    setMaxII         (double maxII) {_maximumIncoherentIntensity = maxII; return true;}
+		std::pair<std::vector<double>, std::vector<double> > getStoredPoints() const;		
 	protected:
 		size_t                                           _nSect;
+		double                                           _maximumIncoherentIntensity;
 		std::vector<std::shared_ptr<amplitude> >         _amplitudes;
 		std::vector<std::vector<std::complex<double> > > _points;
 		std::vector<size_t>                              _amplitudeCoherenceBorders;

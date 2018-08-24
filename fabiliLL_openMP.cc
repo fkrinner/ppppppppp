@@ -6,37 +6,17 @@ fabiliLL_openMP::fabiliLL_openMP(std::vector<std::shared_ptr<amplitude> > amplit
 	fabiliFunction() {}
 
 double fabiliLL_openMP::scalarEval(const std::vector<double>& parameters) const {
-        std::vector<std::complex<double> > prodAmps(_nAmpl);
-        size_t skip       = 1;
-        if (_fixFirstPhase) {
-                prodAmps[0] = std::complex<double>(parameters[0], 0.);
-        } else {
-                ++skip;
-                prodAmps[0] = std::complex<double>(parameters[0], parameters[1]);
-        }
-        for (size_t a = 1; a < _nAmpl; ++a) {
-                prodAmps[a] = std::complex<double>(parameters[2*a-2+skip], parameters[2*a-1+skip]);
-        }
+        std::vector<std::complex<double> > prodAmps = fullParamsToProdAmps(getFullParameters(parameters));
 	return logLikelihood::eval(prodAmps);
 }
 
 evalType fabiliLL_openMP::eval(const std::vector<double>& parameters) const {
-	const size_t dim = fabiliLL_openMP::dim();
-	if (parameters.size() != dim) {
+	const size_t nPar = getNpar();
+	if (parameters.size() != nPar) {
 		std::cout << "Wrong size of parameters" << std::endl;
 		throw;
 	}
-	std::vector<std::complex<double> > prodAmps(_nAmpl);
-	size_t skip       = 1;
-	if (_fixFirstPhase) {
-		prodAmps[0] = std::complex<double>(parameters[0], 0.);
-	} else {
-		++skip;
-		prodAmps[0] = std::complex<double>(parameters[0], parameters[1]);
-	}
-	for (size_t a = 1; a < _nAmpl; ++a) {
-		prodAmps[a] = std::complex<double>(parameters[2*a-2+skip], parameters[2*a-1+skip]);
-	}
+        std::vector<std::complex<double> > prodAmps = fullParamsToProdAmps(getFullParameters(parameters));
 	const size_t maxNthread = omp_get_max_threads();
 //	std::cout << "maximum number of threads is " << maxNthread << std::endl;
 
@@ -137,28 +117,17 @@ evalType fabiliLL_openMP::eval(const std::vector<double>& parameters) const {
 	++_nCalls;
 	evalType retVal;
 	retVal.value        = ll;
-	retVal.gradient     = Eigen::VectorXd::Zero(dim);
-	retVal.hessian      = Eigen::MatrixXd::Zero(dim, dim);
-	for (size_t ai = 0; ai < _nAmpl; ++ai) {
-		size_t iR = 2*ai;
-		size_t iI = 2*ai+1;
-		if (ai > 0. && _fixFirstPhase) {
-			--iR;
-			--iI;
-		}
-		retVal.gradient(iR) = Dll[2*ai  ];
-		retVal.gradient(iI) = Dll[2*ai+1];
-		for (size_t aj = 0; aj < _nAmpl; ++aj) {
-			size_t jR = 2*aj;
-			size_t jI = 2*aj+1;
-			if (aj > 0 && _fixFirstPhase) {
-				--jR;
-				--jI;
-			}
-			retVal.hessian(iR,jR) = DDll[2*ai  ][2*aj  ];
-			retVal.hessian(iR,jI) = DDll[2*ai  ][2*aj+1];
-			retVal.hessian(iI,jR) = DDll[2*ai+1][2*aj  ];
-			retVal.hessian(iI,jI) = DDll[2*ai+1][2*aj+1];
+
+	DDll                = makeFinalHessian(parameters, DDll); // To this first, since the full  gradient is needed
+	Dll                 = makeFinalGradient(parameters, Dll);
+
+	retVal.gradient     = Eigen::VectorXd::Zero(nPar);
+	retVal.hessian      = Eigen::MatrixXd::Zero(nPar, nPar);
+	for (size_t i = 0; i < nPar; ++i) {
+		retVal.gradient(i) = Dll[i];
+		retVal.gradient(i) = Dll[i];
+		for (size_t j = 0; j < nPar; ++j) {
+			retVal.hessian(i,j) = DDll[i][j];
 		}
 	}
 	return retVal;

@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <fstream>
 #include "BELLE_efficiency.h"
@@ -30,6 +31,9 @@ int main() {
 	std::string outFileNameMDsideband     = "./BELLE_mDsideband.root";
 	std::string outFileNameBothSidebands  = "./BELLE_bothSidebands.root";
 
+	std::string outFileNameBothSidebandsLowerMD  = "./BELLE_bothSidebandsLowerMD.root";
+	std::string outFileNameBothSidebandsHigherMD = "./BELLE_bothSidebandsHigherMD.root";
+
 //	BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi_massdiffsidebandlarge_andElectronCut(inFileName, outFileName);
 
 //	BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(inFileName, outFileNameSignal        , false, false);
@@ -37,9 +41,34 @@ int main() {
 //	BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(inFileName, outFileNameMDsideband    , false, true );
 //	BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(inFileName, outFileNameBothSidebands , true , true );
 
-	makeIDplot(outFileNameSignal        , "idPlots_signal.root");
-	makeIDplot(outFileNameDeltaMSideband, "idPlots_deltaMsideband.root");
-	makeIDplot(outFileNameMDsideband    , "idPlots_mDsideband.root");
-	makeIDplot(outFileNameBothSidebands , "idPlots_bothSidebands.root");
+//	BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(inFileName, outFileNameBothSidebandsLowerMD  , true , true, -1);
+//	BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(inFileName, outFileNameBothSidebandsHigherMD , true , true,  1);
+
+//	makeIDplot(outFileNameSignal        , "idPlots_signal.root");
+//	makeIDplot(outFileNameDeltaMSideband, "idPlots_deltaMsideband.root");
+//	makeIDplot(outFileNameMDsideband    , "idPlots_mDsideband.root");
+//	makeIDplot(outFileNameBothSidebands , "idPlots_bothSidebands.root");
+
+//	makeIDplot(outFileNameBothSidebandsLowerMD , "idPlots_bothSidebandsLowerMD.root");
+//	makeIDplot(outFileNameBothSidebandsHigherMD, "idPlots_bothSidebandsHigherMD.root");
+
+	std::vector<std::pair<double,double> > binning = {std::pair<double,double>(1.85, 1.88),
+
+	                                                  std::pair<double,double>(1.815, 1.915),
+
+	                                                  std::pair<double,double>(1.815 , 1.835),
+	                                                  std::pair<double,double>(1.895 , 1.915),
+       
+	                                                  std::pair<double,double>(1.815 , 1.820),
+	                                                  std::pair<double,double>(1.820 , 1.825),
+	                                                  std::pair<double,double>(1.825 , 1.830),
+	                                                  std::pair<double,double>(1.830 , 1.835),
+
+	                                                  std::pair<double,double>(1.895 , 1.900),
+	                                                  std::pair<double,double>(1.900 , 1.905),
+	                                                  std::pair<double,double>(1.905 , 1.910),
+	                                                  std::pair<double,double>(1.910 , 1.915)
+	};
+	makeDmassBinnedDalitzs(outFileNameBothSidebands, "binned_dalitzs.root", binning, 0, true);
 	return 0;
 }

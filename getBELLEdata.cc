@@ -30,7 +30,7 @@ double breakupMomentumSquared(const double M, const double m1, const double m2, 
 	return q2;
 }
 
-void BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(const std::string inFileName, const std::string outFileName, bool massDiffSideBand, bool mDsideBand) {
+void BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(const std::string inFileName, const std::string outFileName, bool massDiffSideBand, bool mDsideBand, int mDsbRegion) {
 	TFile *file0 = new TFile(inFileName.c_str(),"READ");
 	TTree *tree0 = (TTree*)file0->Get("h1");
 
@@ -43,7 +43,15 @@ void BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(const std::string i
 		cut_string_selection += "&& 0.1444<Dstar_massdiff && Dstar_massdiff<0.1464 ";
 	}
 	if (mDsideBand) {
-		cut_string_selection +=  "&& ( ( D0_mass > 1.815 && D0_mass < 1.835) || ( D0_mass > 1.895 && D0_mass < 1.915) ) ";
+		if (mDsbRegion == 0) {
+			cut_string_selection +=  "&& ( ( D0_mass > 1.815 && D0_mass < 1.835) || ( D0_mass > 1.895 && D0_mass < 1.915) ) ";
+		} else if (mDsbRegion == -1) {
+			cut_string_selection +=  "&& ( D0_mass > 1.815 && D0_mass < 1.835) ";
+		} else if (mDsbRegion ==  1) {
+			cut_string_selection +=  "&& ( D0_mass > 1.895 && D0_mass < 1.915) ";
+		} else {
+			std::cout << "BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(...): ERROR: Unknown mD sideband region" << std::endl;
+		}
 	} else {
 		cut_string_selection +=  "&& abs(D0_mass-1.865)<0.015 ";
 	}
@@ -111,7 +119,7 @@ void BELLE_make_sidebands(std::string infilename, std::string outfilename) {
 
 std::vector<std::vector<double> > getBELLEevents(std::string inFileName, int SP_sign, bool SIGNSWITCH) {
 	if (SP_sign*SP_sign*SP_sign != SP_sign) {
-		std::cout << "SP_sign (soft pion) can only be 1, -1, or 0 (for positive, negative, or both)" << std::endl;
+		std::cout << " getBELLEevents(...): ERROR: SP_sign (soft pion) can only be 1, -1, or 0 (for positive, negative, or both)" << std::endl;
 		throw;
 	}
 	TFile *file0   = new TFile(inFileName.c_str(),"READ");
@@ -152,6 +160,67 @@ std::vector<std::vector<double> > getBELLEevents(std::string inFileName, int SP_
 	return retVal;
 }
 
+void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outFileName, std::vector<std::pair<double, double> > binning, int SP_sign, bool SIGNSWITCH) {
+	if (SP_sign*SP_sign*SP_sign != SP_sign) {
+		std::cout << "makeDmassBinedDalitzs(...): ERROR: SP_sign (soft pion) can only be 1, -1, or 0 (for positive, negative, or both)" << std::endl;
+		throw;
+	}
+
+	TFile *file0   = new TFile(inFileName.c_str(),"READ");
+	TTree *treenew = (TTree*)file0->Get("h1");
+
+	size_t nPoints = treenew->GetEntries();
+	std::vector<std::vector<double> > retVal(nPoints, std::vector<double>(3,mD0*mD0));
+
+	TBranch* branch = treenew->GetBranch("h1");
+
+	TLeaf* L_mD0 = branch-> GetLeaf("D0_mass");
+	TLeaf* L_m01 = branch-> GetLeaf("D0_massconstrained_mass_squared01");
+	TLeaf* L_m02 = branch-> GetLeaf("D0_massconstrained_mass_squared02");
+	TLeaf* L_m12 = branch-> GetLeaf("D0_massconstrained_mass_squared12");
+	TLeaf* L_spc = branch-> GetLeaf("softpion_charge");
+	std::vector<TH2D> hists;
+	for (std::pair<double, double> bin: binning) {
+		if (bin.first > bin.second) {
+			std::cout << "makeDmassBinedDalitzs(...): ERROR: Bin borders have to be ordered" << std::endl;
+			throw;
+		}
+		std::string name = std::string("dalitz_")+std::to_string(bin.first) + std::string("-") + std::to_string(bin.second);
+		hists.push_back(TH2D(name.c_str(), name.c_str(), 100, 0.3,3.3, 100 ,0. , 2.2));
+	}
+	for (int i = 0, N = treenew->GetEntries(); i < N; ++i) {
+		treenew->GetEntry(i);
+		if (L_m01->GetValue(0) == 0. || L_m02->GetValue(0) == 0.|| L_m12->GetValue(0) == 0.) {
+			continue;
+		}
+
+		if ((L_spc->GetValue(0) - SP_sign)*SP_sign != 0.) {
+			continue;
+		}
+		double mX;
+		double mY;
+		double mD = L_mD0->GetValue(0);
+		if (L_spc->GetValue(0) == 1. or not SIGNSWITCH) {
+			mX = L_m01->GetValue(0);
+			mY = L_m12->GetValue(0);
+		} else {
+			mX = L_m02->GetValue(0);
+			mY = L_m12->GetValue(0);
+		}
+		for (size_t b = 0; b < binning.size(); ++b) {
+			if (mD < binning[b].first || mD > binning[b].second) {
+				continue;
+			}
+			hists[b].Fill(mX, mY);
+		}
+	}
+	TFile *file = new TFile(outFileName.c_str(), "RECREATE");
+	for (TH2D& h: hists) {
+		h.Write();
+	}
+	file->Close();
+}
+
 void makeIDplot(const std::string inFileName, const std::string outFileName) {
 	TFile *file0   = new TFile(inFileName.c_str(),"READ");
 	TTree *treenew = (TTree*)file0->Get("h1");
@@ -190,8 +259,8 @@ void makeIDplot(const std::string inFileName, const std::string outFileName) {
 	TH2D hist6 = TH2D("cosTe_vs_cosTp", "cosTe vs. cosTp"  , 100,-1.  , 1.,    100, -1. , 1. );
 	TH2D hist7 = TH2D("m2ee_pee"      , "m2(ee) vs. pee"   ,   5, 0.  , 2.,    5,0. , 1. );
 
-	TH2D ful = TH2D("full_dalitz", "fullDalitz", 100, 0., 2., 100 ,0. , 3.);
-	TH2D odd = TH2D("odd_dalitz" , "oddDalitz" , 100, 0., 2., 100 ,0. , 3.);
+	TH2D ful = TH2D("full_dalitz", "fullDalitz", 100, 0.,2.2, 100 ,0.3 , 3.3);
+	TH2D odd = TH2D("odd_dalitz" , "oddDalitz" , 100, 0.,2.2, 100 ,0.3 , 3.3);
 
 	TH3D hist3d = TH3D("m2pipi_m2Kpi_cosT","m2pipi_m2Kpi_cosT",33, 0.,2.1,  33, 0., 2.1, 33, -1.,1.);
 	for (int i = 0, N = treenew->GetEntries(); i < N; ++i) {
@@ -254,10 +323,12 @@ void makeIDplot(const std::string inFileName, const std::string outFileName) {
 		double m2Kp = pKp.M2();
 
 		double mpp = pow(m2pp,.5);
-		double Q2 = breakupMomentumSquared(mD0, mKs, mpp, true);
+
+		double Q2 = breakupMomentumSquared(mD, mKs, mpp, true);
 		if (Q2 < 0.) {
 			continue;
 		}
+		ful.Fill(m2pp, m2Kp);
 		double Q = pow(Q2,.5);
 		double q = pow(breakupMomentumSquared(mpp, mPi, mPi, true),.5);
 
@@ -301,9 +372,8 @@ void makeIDplot(const std::string inFileName, const std::string outFileName) {
 		hist4.Fill(mD, cosTe);
 		hist6.Fill(cosTe, cosTp);
 		hist7.Fill(m2ee, pee);
-		hist8.Fill( cosTformula2 , m2pp);
+		hist8.Fill(cosTformula2, m2pp);
 
-		ful.Fill(m2pp, m2Kp);
 		if (cosTp*cosTp > .64 && m2pp > 1. && m2pp < 1.5625) {
 			odd.Fill(m2pp, m2Kp);
 		}

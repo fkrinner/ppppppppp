@@ -1,5 +1,5 @@
 #include"massShape.h"
-
+#include"utils.h"
 #include<iostream>
 
 massShape::massShape(std::string name, std::vector<double> pars, std::vector<std::string> parNames):
@@ -95,4 +95,31 @@ std::complex<double> zeroMode1mm::eval(double s12) const {
 //	std::cout << "Called zeroMode1mm with " << s12 << " giving " << retVal << std::endl;
 	return std::complex<double>(retVal, 0.);
 }
+//------------------------------------------------------------------------------
+polynomialMassShape::polynomialMassShape(std::vector<std::complex<double> > coefficients, double baseExponent) :
+	massShape(std::string("polynomialMassShape_deg") + std::to_string(coefficients.size()-1), {}, {}), _polDeg(0), _baseExponent(baseExponent) {
+
+	if (!utils::checkComplexDouble()) {
+		std::cout << "polynomialMassShape::polynomialMassShape(...): ERROR: std::complex<double>* is not double real, double imag array" << std::endl;
+		throw;
+	}
+	for (size_t c = 0; c < coefficients.size(); ++c) {
+		_parameters.push_back(coefficients[c].real());
+		_parameterNames.push_back(std::string("c_") + std::to_string(c) + std::string("_r"));
+		_parameters.push_back(coefficients[c].imag());
+		_parameterNames.push_back(std::string("c_") + std::to_string(c) + std::string("_i"));
+	}
+	_nPar   = 2*coefficients.size();
+	_polDeg = coefficients.size();
+}
+
+std::complex<double> polynomialMassShape::eval(double s12) const {
+	std::complex<double> retVal(0.,0.);
+	std::complex<double>* coeffs = (std::complex<double>*)&_parameters[0];
+	for (size_t c = 0; c < _polDeg; ++c) {
+		retVal += coeffs[c] * pow(s12, _baseExponent*c);
+	}
+	return retVal;
+}
+
 

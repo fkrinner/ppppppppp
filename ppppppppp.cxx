@@ -356,7 +356,9 @@ int main() {
 
 //	std::cout << "artificial stopping point after writing of the integrals" << std::endl;
 //	return 0;
-	ll.setFixFirstPhase(true);
+	if (true) { // ionstead of setFixFirstPhase
+		ll.fixParameter(1,0.);
+	}
 	std::cout << "Start loading data points" << std::endl;
 	ll.loadDataPoints(generatedPoints);
 	std::cout << "Finished loading data points" << std::endl;

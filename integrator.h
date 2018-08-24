@@ -24,10 +24,6 @@ class integrator {
 		std::vector<double>                 DtotalIntensity  (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
 		std::vector<std::vector<double> >   DDtotalIntensity (const std::vector<std::complex<double> >& prodAmpl, bool accCorr = false) const;
 
-		double                              multiplyLR    (const std::vector<std::complex<double> >& L, const std::vector<std::complex<double> >& R, bool accCorr = false) const;
-		std::vector<double>                 DLmultiplyLR  (const std::vector<std::complex<double> >& L, const std::vector<std::complex<double> >& R, bool accCorr = false) const;
-		std::vector<double>                 DRmultiplyLR  (const std::vector<std::complex<double> >& L, const std::vector<std::complex<double> >& R, bool accCorr = false) const;
-
 		bool                                addIncoherentSector(std::shared_ptr<integrator> sector);
 
 		bool                                isIntegrated ()                     const {return _isIntegrated;}
@@ -41,10 +37,6 @@ class integrator {
 
 		bool                                setCoherenceBorders(std::vector<size_t>& borders);
 		bool                                setNumLim(double val) {_numLim = val; return true;}
-
-		bool                                setNonDiagToZero();
-		bool                                resize(size_t nAmpl);
-
 	protected:
 		bool                                makeRealMatrices();
 

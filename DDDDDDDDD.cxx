@@ -22,13 +22,16 @@
 #include"fabiliLL_openMP.h"
 #include"fabili.h"
 
+#include"TH2D.h"
+#include"TFile.h"
+
 std::complex<double> BW(const double& m2, const double&  m0, const double& G0) {
 	return std::complex<double>(m0*G0,0.)/std::complex<double>(m0*m0 - m2, -m0*G0);
 }
 
 int main(int argc, char *argv[]) {
 	(void) argv;
-
+	TH2D ful = TH2D("full_dalitz", "fullDalitz", 100, 0.,2.2, 100 ,0.3 , 3.3);
 	size_t seed = size_t( time(NULL) );
 	std::cout << "Seed: " << seed << std::endl;
 
@@ -121,12 +124,16 @@ int main(int argc, char *argv[]) {
 		}
 		binningPiPiD.push_back(m*m);
 	}
-
+	size_t fixNbinSwaves = 10;
+	std::vector<size_t> fixAmplitudes;
 	std::vector<std::shared_ptr<amplitude> > amplitudes = {};
 // - - - - - - - K piRight S-wave
 	for (size_t b = 0; b < binningKpiS.size() - 1; ++b) {
 		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiS[b], binningKpiS[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(12, std::string("KpiRight[") + std::to_string(b) + std::string("]PiS"), step, S12, fsMasses);
+		if (b == fixNbinSwaves) {
+			fixAmplitudes.push_back(amplitudes.size()); // do this befre push back, so the index is right (Otherwirse .size() - 1)
+		}
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - K piRight P-wave
@@ -146,6 +153,9 @@ int main(int argc, char *argv[]) {
 	for (size_t b = 0; b < binningKpiS.size() - 1; ++b) {
 		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningKpiS[b], binningKpiS[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(23, std::string("KpiWrong[") + std::to_string(b) + std::string("]PiS"), step, S23, fsMasses);
+		if (b == fixNbinSwaves) {
+			fixAmplitudes.push_back(amplitudes.size()); // do this befre push back, so the index is right (Otherwirse .size() - 1)
+		}
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - K piWrong P-wave
@@ -165,6 +175,9 @@ int main(int argc, char *argv[]) {
 	for (size_t b = 0; b < binningPiPiS.size() - 1; ++b) {
 		std::shared_ptr<stepLike> step = std::make_shared<stepLike>(binningPiPiS[b], binningPiPiS[b+1]);
 		std::shared_ptr<threeParticlaIsobaricAmplitudeNoBose> stepWave  = std::make_shared<threeParticlaIsobaricAmplitudeNoBose>(13, std::string("piPi[") + std::to_string(b) + std::string("]KS"), step, S13, fsMasses);
+		if (b == fixNbinSwaves) {
+			fixAmplitudes.push_back(amplitudes.size()); // do this befre push back, so the index is right (Otherwirse .size() - 1)
+		}
 		amplitudes.push_back(stepWave);
 	}
 // - - - - - - - pi pi P-wave
@@ -184,99 +197,12 @@ int main(int argc, char *argv[]) {
 	size_t nAmpl                                    = amplitudes.size();
 	std::shared_ptr<threeParticleMassGenerator> gen = std::make_shared<threeParticleMassGenerator>(mD0, fsMasses, S12->kinSignature());
 	std::shared_ptr<efficiencyFunction> efficiency  = std::make_shared<BELLE_DtoKpipi_efficiency>();
-	std::vector<std::complex<double> > oldMin = utils::readComplexValuesFromTextFile("BELLE_sidebands_pi0_nsv_seed1533124364_ll-3894592.723834_N288410.143028.dat");
 
 	std::shared_ptr<integrator> integral            = std::make_shared<integrator>(integralPoints, gen, amplitudes, efficiency);
 	if (!integral->loadIntegrals("ps_" + integralFileName+"_regular.dat", "ac_" + integralFileName+"_regular.dat")) {
 		std::cout << "Could not load integrals" << std::endl;
 		return 1;
 	}
-
-	size_t rsz = 30;
-
-	integral->resize(rsz);
-	integral->setNonDiagToZero();
-	integral->writeToFile("ps_hae.dat", false);
-	integral->writeToFile("ac_hae.dat", true);
-
-	std::vector<std::vector<std::complex<double> > > ps(3, std::vector<std::complex<double> >(3, std::complex<double>(0.,0.)));
-	std::vector<std::vector<std::complex<double> > > ac(3, std::vector<std::complex<double> >(3, std::complex<double>(0.,0.)));
-	ps[0][0] = 3.;
-	ps[1][1] = 4.;
-	ps[2][2] = 5.;
-
-	ac[0][0] = 3.;
-	ac[1][1] = 5.;
-	ac[2][2] = 7.;
-
-	ac[1][2] = std::complex<double>(3., 111.);
-	ac[2][1] = std::complex<double>(3.,-111.);
-
-	ac[0][1] = std::complex<double>(123., 37.);
-	ac[1][0] = std::complex<double>(123.,-37.);;
-
-	ac[2][1] = std::complex<double> (42., 41.);
-	ac[1][2] = std::complex<double> (42.,-41.);
-
-
-	integral->setIntegrals(ps,ac);
-	std::vector<std::complex<double> > pa = oldMin;//  {std::complex<double>(11.,23.), std::complex<double>(13., 29.), std::complex<double> (17., 31.)};
-//	pa[0] = std::complex<double>(0.,0.); pa[2] = std::complex<double>(0.,0.);
-	pa.resize(rsz);
-
-	double tI = integral->totalIntensity(pa, true);
-	std::vector<std::complex<double> > paL = pa;
-	std::vector<std::complex<double> > paR = pa;
-
-	double LR =  integral->multiplyLR(paL, paR, true);
-
-	std::vector<double> DL = integral->DLmultiplyLR(paL, paR, true);
-	std::vector<double> DR = integral->DRmultiplyLR(paL, paR, true);
-
-	std::vector<double> nDL = integral->DLmultiplyLR(paL, paR, true);
-	std::vector<double> nDR = integral->DRmultiplyLR(paL, paR, true);
-
-	double delta = 1.;
-	for (size_t a = 0; a< paL.size(); ++a) {
-		paL[a] += std::complex<double>(delta, 0.);
-		nDL[2*a  ] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
-		paL[a] += std::complex<double>(-delta, delta);
-		nDL[2*a+1] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
-		paL[a] += std::complex<double>(0., -delta);
-		std::cout << nDL[2*a]/DL[2*a] << " LLL " << nDL[2*a+1]/DL[2*a+1] << std::endl;
-		paR[a] += std::complex<double>(delta, 0.);
-		nDR[2*a  ] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
-		paR[a] += std::complex<double>(-delta, delta);
-		std::cout << "(" << integral->multiplyLR(paL, paR, true) << " - " << LR <<")/" << delta << " = ";
-		nDR[2*a+1] = (integral->multiplyLR(paL, paR, true) - LR)/delta;
-		std::cout << nDR[2*a+1] << std::endl;
-		paR[a] += std::complex<double>(0., -delta);
-		std::cout << nDR[2*a]/DR[2*a] << " RRR " << nDR[2*a+1]/DR[2*a+1] << std::endl;
-	}
-
-	return 0;
-
-	std::vector<double> D(2*pa.size());
-	std::vector<double> DD = integral->DtotalIntensity(pa, true);
-
-//	double deltaSmall = 1.e-5;
-	for (size_t i = 0; i < pa.size(); ++i) {
-		pa[i] += std::complex<double>(delta, 0.);		
-		D[2*i  ] = (integral->totalIntensity(pa, true)-tI)/delta;
-		pa[i] += std::complex<double>(-delta, delta);
-		D[2*i+1] = (integral->totalIntensity(pa, true)-tI)/delta;
-		pa[i] += std::complex<double>(0., -delta);
-
-//		pa[i] += std::complex<double>(deltaSmall, 0.);		
-//		D[2*i  ] = (integral->totalIntensity(pa, true)-tI)/deltaSmall;
-//		pa[i] += std::complex<double>(-deltaSmall, deltaSmall);
-//		D[2*i+1] = (integral->totalIntensity(pa, true)-tI)/deltaSmall;
-//		pa[i] += std::complex<double>(0., -deltaSmall);
-
-		std::cout << D[2*i  ] / DD[2*i ] << std::endl <<  D[2*i+1] / DD[2*i+1] << std::endl;
-	}
-	return 0;
-
 
 	bool doIntegration = false;
 
@@ -291,39 +217,38 @@ int main(int argc, char *argv[]) {
 		std::cout << "Integral files written... finished" << std::endl;
 		return 0;
 	}
-	if (!integral->loadIntegrals("ps_" + integralFileName+"_regular.dat", "ac_" + integralFileName+"_regular.dat")) {
-		std::cout << "Could not load integrals" << std::endl;
-		return 1;
-	}
 
-//	std::string BGfileName = "./BELLE_sidebands_pi0_nsv_seed1532622088_ll-3893334.857917.dat";
-//	std::string BGfileName = "./BELLE_sidebands_pi0_nsv_seed1532955121_ll-3894864.545268_N288407.215450.dat";
-//	std::vector<std::complex<double> > backgroundCoefficients = utils::readComplexValuesFromTextFile(BGfileName);
+//	std::shared_ptr<mCosTintensPolynomial> bg_amplitude = std::make_shared<mCosTintensPolynomial>(std::make_shared<kinematicSignature>(2), "dalitzBackground_version1.pol", 1.905, fsMasses, 13);
+	std::shared_ptr<dalitzPolynomialAmplitude> bg_amplitude = std::make_shared<dalitzPolynomialAmplitude>(std::make_shared<kinematicSignature>(2), "dalitzBackground_version2.pol", .405, 1.845, .407, 2.057);
+//	bg_amplitude->setMlimits(std::pair<double,double>(0.26,1.44913767462));
+	std::vector<std::shared_ptr<amplitude> > bg_amplitudes = {bg_amplitude};
+//	for (int i = 0; i < ful.GetNbinsX(); ++i) {
+//		double x = ful.GetXaxis()->GetBinCenter(i+1);
+//		for (int j = 0; j < ful.GetNbinsX(); ++j) {
+//			double y = ful.GetYaxis()->GetBinCenter(j+1);
+//			std::vector<double> kkiinn = {mD0*mD0, y,x};
+//			if (gen->isValidPoint(kkiinn)) {
+//				std::complex<double> val = bg_amplitude->eval(kkiinn);
+//				ful.SetBinContent(i+1, j+1, norm(val));
+//			}
+//		}
+//	}
+//	TFile* ouFile = new TFile("lloll.root","RECREATE");
+//	ful.Write();
+//	ouFile->Close();
+//	return 0;
 
-	std::vector<double> norms;
-	{
-		std::pair<bool, std::vector<double> > retNorm = integral->getNormalizations();
-		if (!retNorm.first) {
-			std::cout << "ERROR: Could not get normalizations" << std::endl;
-			return 0;
-		}
-		norms = retNorm.second;
-	}
-	
-
-//	std::shared_ptr<amplitude> bg_amplitude = std::make_shared<modelAmplitude> (backgroundCoefficients, amplitudes, norms, "backgroundParamneterization");
-//	std::vector<std::shared_ptr<amplitude> > bg_amplitudes (1,bg_amplitude);
-//	std::shared_ptr<integrator> integral_bg = std::make_shared<integrator>(integralPoints, gen, bg_amplitudes, efficiency);
+	std::shared_ptr<integrator> integral_bg = std::make_shared<integrator>(integralPoints, gen, bg_amplitudes, efficiency);
 
 //	integral_bg->integrate();
 //	integral_bg->writeToFile("ps_bg_integral.dat", false);
 //	integral_bg->writeToFile("ac_bg_integral.dat", true);
 //	return 0;
 
-//	if (!integral_bg->loadIntegrals("ps_bg_integral.dat","ac_bg_integral.dat")) {
-//		std::cout << "Could not load background integral" << std::endl;
-//		return 1;
-//	}
+	if (!integral_bg->loadIntegrals("ps_integral_dalitzBackground_version1.dat","ac_integral_dalitzBackground_version1.dat")) {
+		std::cout << "Could not load background integral" << std::endl;
+		return 1;
+	}
 
 //	std::cout << "Starting integration" << std::endl;
 //	integral_bg->integrate();
@@ -340,13 +265,13 @@ int main(int argc, char *argv[]) {
 	if (signalEvents) {
 		dataFileName = "./BELLE_data.root";
 	} else {
-		dataFileName = "./BELLE_bothSidebands.root";
+		dataFileName = "./BELLE_bothSidebandsHigherMD.root";
 	}
 	std::vector<std::vector<double> > dataPoints = getBELLEevents(dataFileName, softpionSign);
+//	dataPoints.resize(1000);
 
 	const size_t nData = dataPoints.size();
 	std::vector<std::complex<double> > startValues(nAmpl);
-
 
 	// Only crude estimates for the resonance parameters to have nice start values with continuous phase motion
 
@@ -370,63 +295,63 @@ int main(int argc, char *argv[]) {
 
 //	nData = 250.;
 
-	std::complex<double> coeff(utils::random2()*nData,utils::random2()*nData);
+	std::complex<double> coeff(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningKpiS.size()-1;++b) {
 		m2    = (binningKpiS[b] + binningKpiS[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_0, GK_0);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningKpiP.size()-1;++b) {
 		m2 = (binningKpiP[b] + binningKpiP[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_1, GK_1);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningKpiD.size()-1;++b) {
 		m2 = (binningKpiD[b] + binningKpiD[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_2, GK_2);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningKpiS.size()-1;++b) {
 		m2 = (binningKpiS[b] + binningKpiS[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_0, GK_0);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningKpiP.size()-1;++b) {
 		m2 = (binningKpiP[b] + binningKpiP[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_1, GK_1);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningKpiD.size()-1;++b) {
 		m2 = (binningKpiD[b] + binningKpiD[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mK_2, GK_2);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningPiPiS.size()-1;++b) {
 		m2 = (binningPiPiS[b] + binningPiPiS[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mf_0, Gf_0);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningPiPiP.size()-1;++b) {
 		m2 = (binningPiPiP[b] + binningPiPiP[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
 		startValues[count] = coeff*BW(m2, mRho, Grho);
 		++count;
 	}
-	coeff = std::complex<double>(utils::random2()*nData,utils::random2()*nData);
+	coeff = std::complex<double>(utils::random2()*nData,utils::random2());
 	for (size_t b = 0; b < binningPiPiD.size()-1;++b) {
 		m2 = (binningPiPiD[b] + binningPiPiD[b+1])/2;
 //		width = binningKpiS[b+1] - binningKpiS[b];
@@ -437,6 +362,15 @@ int main(int argc, char *argv[]) {
 		std::cout << "Number of initialized start values does not match " << count << " != " << nAmpl;
 		return 1;
 	}
+	double scaller = integral->totalIntensity(startValues)/nData/20;
+	scaller = pow(1./scaller,.5);
+
+	scaller = 0.00001;
+
+	for (size_t a = 0; a < startValues.size(); ++a) {
+		startValues[a] *= scaller;
+	}
+
 //	outFile.open("startValueTest.deleteMe");
 //	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 //	for (size_t a = 0; a < startValues.size(); ++a) {
@@ -455,6 +389,13 @@ int main(int argc, char *argv[]) {
 	} else {
 		outFileNameBase = "./BELLE_sidebands";
 	}
+
+//	startValues = utils::readComplexValuesFromTextFile("BELLE_sidebands_pi0_nsv_seed1533231138_ll-3891379.772211_N288558.816340.dat");
+
+	amplitudes.push_back(bg_amplitude);
+	integral->addIncoherentSector(integral_bg);
+	double regionAreaFactor = .5;//0.15625; // Signal region is smaller than sidemabnd region by this cator (2 x 0.03) vs. (9.6 x 2*(0.02))
+	startValues.push_back(std::complex<double>(pow(288661.997726*regionAreaFactor,.5),0.));
 
 	if (parallel) {
 		std::cout << "Running in fabili mode" << std::endl;
@@ -507,29 +448,22 @@ int main(int argc, char *argv[]) {
 
 		logLikelihood ll(amplitudes, integral);
 		ll.loadDataPoints(dataPoints);
-		ll.setExtended(true);
-//		ll.setNstore(10000);
+		ll.setExtended(true  );
+//		ll.setNstore(10000   );
+//		ll.setMaxII(10.*nData);
 
-		double minEval = ll.eval(oldMin);
-		double numGradElement = 0.;
-		double delta   = 1.e-6;
-		std::vector<double> minGrad = ll.Deval(oldMin);
-		std::vector<double> numGrad(minGrad.size());
-		for (size_t a = 0; a < oldMin.size(); ++a) {
-			oldMin[a] += std::complex<double>(delta,0.);
-			numGradElement = (ll.eval(oldMin) - minEval)/delta;
-			std::cout << numGradElement << " | | | " << minGrad[2*a  ] << std::endl;
-			oldMin[a] += std::complex<double>(-delta,delta);
-			numGradElement = (ll.eval(oldMin) - minEval)/delta;
-			std::cout << numGradElement << " | | | " << minGrad[2*a+1] << std::endl;
-			oldMin[a] += std::complex<double>(0.,-delta);
-			numGradElement += numGradElement;
+		for (size_t a : fixAmplitudes) {
+			ll.fixParameter(2*a  ,0.);
+			ll.fixParameter(2*a+1,0.);
+			startValues[a] = std::complex<double>(0.,0.);
 		}
-		return 0;
+		ll.addCopyParameter(22, 3);
+		ll.addCopyParameter(23, 4, 0, 10000.);
+		ll.addCopyParameter(25, 6, 0, 10000.);
+		ll.addCopyParameter(100, 80, 1, 500.);
 
+		std::cout << "Start fitting" << std::endl;
 		std::pair<double, std::vector<std::complex<double> > > retVal = ll.fitNlopt(startValues);
-
-
 		std::string outFileName = outFileNameBase + std::string("_pi") + std::to_string(softpionSign) + std::string("_nsv_seed")+ std::to_string(seed) + std::string("_ll") + std::to_string(retVal.first) + std::string("_N")+std::to_string(integral->totalIntensity(retVal.second, true)) + std::string(".dat");
 		outFile.open(outFileName.c_str());
 		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);

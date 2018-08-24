@@ -30,7 +30,7 @@ class threeParticleIsobaricAmplitude : public amplitude {
 	public:
 		threeParticleIsobaricAmplitude(bool boseSymmetrize, std::string name, std::shared_ptr<massShape> shape, std::shared_ptr<angularDependence> angDep);
 		
-		std::complex<double> eval(const std::vector<double>& kin) const;
+		std::complex<double> eval(const std::vector<double>& kin) const override;
 		std::complex<double> evalSingleSymmTerm(const std::vector<double>& kin) const;
 
 	private:
@@ -43,12 +43,66 @@ class threeParticlaIsobaricAmplitudeNoBose : public amplitude {
 	public:
 		threeParticlaIsobaricAmplitudeNoBose(size_t isobarIndex, std::string name, std::shared_ptr<massShape> shape, std::shared_ptr<angularDependence> angDep, std::vector<double> fsMasses);
 
-		std::complex<double> eval(const std::vector<double>& kin) const;
+		std::complex<double> eval(const std::vector<double>& kin) const override;
 	private:
 		size_t                             _isobarIndex;
 		double                             _sumFSmasses;
 		std::shared_ptr<massShape>         _massShape;
 		std::shared_ptr<angularDependence> _angDep;
 	
+};
+
+class dalitzMonomialAmplitude : public amplitude {
+	public:
+		dalitzMonomialAmplitude(std::shared_ptr<kinematicSignature> kinSignature, double exponent1, double exponent2);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	private:
+		double _exponent1;
+		double _exponent2;
+
+};
+
+class dalitzPolynomialAmplitude : public amplitude {
+	public:
+		dalitzPolynomialAmplitude(std::shared_ptr<kinematicSignature> kinSignature, const std::string configurationFile, double xMin, double xMax, double yMin, double yMax);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+		std::pair<double, double> getXY(const std::vector<double>& kin) const;
+
+	private:
+		size_t              _nTerms;
+		double              _xMin;
+		double              _xMax;
+		double              _xWidth;
+		double              _yMin;
+		double              _yMax;
+		double              _yWidth;
+		std::vector<size_t> _xExponents;
+		std::vector<size_t> _yExponents;
+		std::vector<double> _coefficients;
+};
+
+class mCosTintensPolynomial : public amplitude {
+	public:
+		mCosTintensPolynomial(std::shared_ptr<kinematicSignature> kinSignature, const std::string configurationFile, double motherMass, std::vector<double> fsMasses, size_t isobarCombination = 12);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+		std::pair<double, double> getMcosT(const std::vector<double>& kin) const;
+		std::pair<double, double> getXY(const std::pair<double, double> mCosT) const;
+
+		bool setCosTLimits(const std::pair<double,double> newLimits);
+		bool setMlimits(const std::pair<double,double> newLimits);
+	private:
+		size_t                   _isobarCombination;
+		size_t                   _nTerms;
+		double                   _mWidth;
+		double                   _cosTwidth;
+		std::pair<double,double> _mLimits;
+		std::pair<double,double> _cosTlimits;
+		std::vector<size_t>      _xExponents;
+		std::vector<size_t>      _yExponents;
+		std::vector<double>      _coefficients;
+		std::vector<double>      _fsMasses;
 };
 #endif//AMPLITUDE__
