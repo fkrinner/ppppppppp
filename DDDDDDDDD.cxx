@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 	const double binWidth = 0.04;
 	std::string integralFileName = "integral_finer_binning";
 
-	double m = mPi+ mKs;
+	double m = mPi + mKs;
 	std::vector<double> binningKpiS = {m*m};
 	while (m < mD0 - mPi) {
 		if (false) {
