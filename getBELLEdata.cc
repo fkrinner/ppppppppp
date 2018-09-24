@@ -160,7 +160,7 @@ std::vector<std::vector<double> > getBELLEevents(std::string inFileName, int SP_
 	return retVal;
 }
 
-void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outFileName, std::vector<std::pair<double, double> > binning, int SP_sign, bool SIGNSWITCH) {
+void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outFileName, std::vector<std::pair<double, double> > binning, int SP_sign, bool SIGNSWITCH, int nBinsX, int nBinsY) {
 	if (SP_sign*SP_sign*SP_sign != SP_sign) {
 		std::cout << "makeDmassBinedDalitzs(...): ERROR: SP_sign (soft pion) can only be 1, -1, or 0 (for positive, negative, or both)" << std::endl;
 		throw;
@@ -186,7 +186,7 @@ void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outF
 			throw;
 		}
 		std::string name = std::string("dalitz_")+std::to_string(bin.first) + std::string("-") + std::to_string(bin.second);
-		hists.push_back(TH2D(name.c_str(), name.c_str(), 100, 0.3,3.3, 100 ,0. , 2.2));
+		hists.push_back(TH2D(name.c_str(), name.c_str(), nBinsX, 0.3,3.3, nBinsY ,0. , 2.2));
 	}
 	for (int i = 0, N = treenew->GetEntries(); i < N; ++i) {
 		treenew->GetEntry(i);

@@ -24,6 +24,10 @@ namespace utils {
 		return (s*s + s1*s1 + s2*s2 - 2*(s*s1 + s*s2 + s1*s2))/4/s;
 	}
 
+	double degToRad(double deg) {
+		return deg * M_PI / 180.;
+	}
+
 	bool checkComplexDouble() {
 		std::vector<std::complex<double> > vals = {std::complex<double>(1.,2.), std::complex<double>(3.,4.)};
 		double* val = (double*)&vals[0];
@@ -60,7 +64,7 @@ namespace utils {
 		return retVal;
 	}
 
-	std::vector<std::vector<std::complex<double> > > readComplexMatrixFromTextFile(const std::string& inFileName, size_t dim) {
+	std::pair<bool, std::vector<std::vector<std::complex<double> > > > readComplexMatrixFromTextFile(const std::string& inFileName, size_t dim) {
 		std::vector<std::vector<std::complex<double> > > retVal(dim, std::vector<std::complex<double> >(dim));
 		size_t col = 0;
 		size_t lin = 0;
@@ -75,9 +79,36 @@ namespace utils {
 			}
 		}
 		if (col != 0 || lin != dim) {
-			std::cout << "Mismatch in matrix dimensions: ("<<col<<","<<lin<<")= (col,lin) != (0,dim) = (0," <<dim<<")"<<std::endl;
+			std::cout << "utils::readComplexMatrixFromTextFile(...): ERROR: Mismatch in matrix dimensions: ("<<col<<","<<lin<<")= (col,lin) != (0,dim) = (0," <<dim<<")"<<std::endl;
+			return std::pair<bool, std::vector<std::vector<std::complex<double> > > >(false, std::vector<std::vector<std::complex<double> > >());
+		}
+		return std::pair<bool, std::vector<std::vector<std::complex<double> > > >(true, retVal);
+	}
+
+	std::vector<std::vector<double> > sanitizeDataPoints(const std::vector<std::vector<double> >& inData, const std::vector<double>& fsMasses) {
+		if (fsMasses.size() != 3) {
+			std::cout << "utils::sanitizeDataPoints(...): ERROR: fsMasses has to have size 3" << std::endl;
 			throw;
 		}
+		const size_t nIn = inData.size();
+		if (nIn == 0) {
+			return std::vector<std::vector<double> >();
+		}
+		const size_t dim = inData[0].size();
+		const double masssum = fsMasses[0]*fsMasses[0] + fsMasses[1]*fsMasses[1] + fsMasses[2]*fsMasses[2];
+		size_t count = 0;
+		std::vector<std::vector<double> > retVal(nIn, std::vector<double>(dim, 0.));
+		for (const std::vector<double> & point : inData) {
+			if (point[0] - point[1] - point[2] + masssum > 0.) {
+				retVal[count][0] = point[0];
+				retVal[count][1] = point[1];
+				retVal[count][2] = point[2];
+				++count;
+			}
+		}
+		retVal.resize(count);
+		std::cout << "utils::sanitizeDataPoints(...): INFO: " << count << " events of " << nIn << " events are sane" << std::endl;
+
 		return retVal;
 	}
 }

@@ -42,6 +42,10 @@ bool integrator::integrate() {
 		size_t countAmp = 0;
 		for (std::shared_ptr<amplitude> a : _amplitudes) {
 			ampl[countAmp] = a->eval(kin);
+//			if (std::isnan(ampl[countAmp].real()) || std::isnan(ampl[countAmp].imag())) {
+//				std::cout << "integrator::loadIntegrals(...): ERROR: NaN amplitude encountered for " << a->name() << std::endl;
+//				return false;
+//			}
 			++countAmp;
 		}
 		for (size_t i = 0; i < nAmpl(); ++i) {
@@ -69,9 +73,17 @@ bool integrator::integrate() {
 
 bool integrator::loadIntegrals(const std::string& psFileName, const std::string& accFileName) {
 	// Trust the content of the files, as long as the dimensions match
-	std::vector<std::vector<std::complex<double> > > ps_load = utils::readComplexMatrixFromTextFile(psFileName, _amplitudes.size());
-	std::vector<std::vector<std::complex<double> > > ac_load = utils::readComplexMatrixFromTextFile(accFileName, _amplitudes.size());
-	if (not setIntegrals(ps_load, ac_load)) {
+	std::pair<bool, std::vector<std::vector<std::complex<double> > > > ps_load = utils::readComplexMatrixFromTextFile(psFileName, _amplitudes.size());
+	if (!ps_load.first) {
+		std::cout << "integrator::loadIntegrals(...): ERROR: Could not load ps matrix from '" << psFileName << "'" << std::endl;
+		return false;
+	}
+	std::pair<bool, std::vector<std::vector<std::complex<double> > > > ac_load = utils::readComplexMatrixFromTextFile(accFileName, _amplitudes.size());
+	if (!ac_load.first) {
+		std::cout << "integrator::loadIntegrals(...): ERROR: Could not load ac matrix from '" << accFileName << "'" <<  std::endl;
+		return false;
+	}
+	if (not setIntegrals(ps_load.second, ac_load.second)) {
 		std::cout << "integrator::loadIntegrals(...): ERROR: Could not set loaded matrices" << std::endl;
 		return false;
 	}
@@ -98,11 +110,11 @@ bool integrator::setIntegrals(const std::vector<std::vector<std::complex<double>
 		}	
 	}
 	for (size_t a_i = 0; a_i < _nAmpl; ++a_i) {
-		if (not ps_integral[a_i][a_i].imag() == 0.) {
+		if (ps_integral[a_i][a_i].imag() != 0.) {
 			std::cout << "integrator::setIntegrals(...): ERROR: ps_integral has non-vanisihng imaginary part on the diagonal: " << ps_integral[a_i][a_i] << std::endl;
 			return false;
 		}
-		if (not ac_integral[a_i][a_i].imag() == 0.) {
+		if (ac_integral[a_i][a_i].imag() != 0.) {
 			std::cout << "integrator::setIntegrals(...): ERROR: ac_integral has non-vanisihng imaginary part on the diagonal: " << ac_integral[a_i][a_i] << std::endl;
 			return false;
 		}
@@ -116,6 +128,24 @@ bool integrator::setIntegrals(const std::vector<std::vector<std::complex<double>
 				return false;
 			}
 		}
+	}
+	bool nanAmpl = false;
+	for (size_t a = 0; a < _nAmpl; ++a) {
+		if (std::isnan(ac_integral[a][a].real()) || std::isnan(ac_integral[a][a].imag())) {
+			nanAmpl = true;
+			std::cout << "integrator::setIntegrals(...): ERROR: NaN in ac integral for wave '" << _amplitudes[a]->name() << "': " << ac_integral[a][a]  << std::endl;
+		}
+	}
+       for (size_t a = 0; a < _nAmpl; ++a) {
+                if (std::isnan(ps_integral[a][a].real()) || std::isnan(ps_integral[a][a].imag())) {
+                        nanAmpl = true;
+                        std::cout << "integrator::setIntegrals(...): ERROR: NaN in ps integral for wave '" << _amplitudes[a]->name() << "': " << ps_integral[a][a] << std::endl;
+                }
+        }
+
+	if (nanAmpl) {
+		std::cout <<  "integrator::setIntegrals(...): ERROR: NaN amplitudes encountered" << std::endl;
+		return false;
 	}
 	_integralMatrix = ps_integral;
 	_accCorrIntegralMatrix =  ac_integral;
@@ -192,7 +222,7 @@ std::pair<bool, std::vector<double> > integrator::getNormalizations(bool accCorr
 		} else {
 			val = _integralMatrix[a][a];
 		}
-		if (not val.imag() == 0.) {
+		if (val.imag() != 0.) {
 			std::cout << "integrator::getNormalizations(...): ERROR: non-vanishing imaginary part on the diagonal" << std::endl;
 			return std::pair<bool, std::vector<double> >(false, std::vector<double>());
 		}
@@ -210,7 +240,7 @@ double integrator::totalIntensity(const std::vector<std::complex<double> >& prod
 		std::cerr << "integrator::totalIntensity(...): ERROR: Not integrated yet. Returning zero." << std::endl;
 		return 0.;
 	}
-	if (not prodAmpl.size() == nAmpl()) {
+	if (prodAmpl.size() != nAmpl()) {
 		std::cerr << "integrator::totalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
 		return 0.;
 	}
@@ -249,7 +279,7 @@ std::vector<double> integrator::DtotalIntensity(const std::vector<std::complex<d
 		std::cerr << "integrator::DtotalIntensity(...): ERROR: Not integrated yet. Returning empty vector." << std::endl;
 		return std::vector<double>();
 	}
-	if (not prodAmpl.size() == nAmpl()) {
+	if (prodAmpl.size() != nAmpl()) {
 		std::cerr << "integrator::DtotalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
 		return std::vector<double>();
 	}
@@ -283,7 +313,7 @@ std::vector<std::vector<double> > integrator::DDtotalIntensity(const std::vector
 		std::cerr << "integrator::DDtotalIntensity(...): ERROR: Not integrated yet. Returning empty vector." << std::endl;
 		return std::vector<std::vector<double> >();
 	}
-	if (not prodAmpl.size() == nAmpl()) {
+	if (prodAmpl.size() != nAmpl()) {
 		std::cerr << "integrator::DDtotalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
 		return std::vector<std::vector<double> >();
 	}

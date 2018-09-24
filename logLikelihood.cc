@@ -9,8 +9,8 @@
 
 double ff_nlopt(const std::vector<double> &x, std::vector<double> &grad, void* f_data) {
 	logLikelihood* inst = reinterpret_cast<logLikelihood*>(f_data);
-	double ret   = inst->nloptCall(x,grad);
-	return ret;
+	double retVal   = inst->nloptCall(x,grad);
+	return retVal;
 }
 
 logLikelihoodBase::logLikelihoodBase (size_t nAmpl, std::shared_ptr<kinematicSignature> kinSignature, std::shared_ptr<integrator> integral) : 
@@ -75,7 +75,7 @@ std::pair<double, std::vector<std::complex<double> > > logLikelihoodBase::fitNlo
 }
 
 double logLikelihoodBase::nloptCall(const std::vector<double> &x, std::vector<double> &grad) const {
-	if (not x.size() == getNpar()) {
+	if (x.size() != getNpar()) {
 		std::cerr << "logLikelihood::nloptCall(...): ERROR: Nomber of amplitudes does not match" << std::endl;
 		throw;
 	}
@@ -547,7 +547,7 @@ double logLikelihood::eval(std::vector<std::complex<double> >& prodAmps) const {
 		ll -= log(_integral->totalIntensity(prodAmps, true))*(double)_nPoints;
 	}
 //std::cout << " d e l t a l l " << ll - imll << std::endl;
-//std::cout << " - - - - - - - - - - - - - -" << std::endl;
+//std::cout << " - - - - - - - - - - - - - -" << _integral->totalIntensity(prodAmps, true) << std::endl;
 	if (_nStore > 0) {
 		if (_lastPar.size() > 0) {
 			_storeEvals[_storageLocation] = -ll;
@@ -764,11 +764,16 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 			return false;
 		}
 		double norm = 0.;
-		if (not diag.second.real() == 0.) {
+		if (diag.second.real() != 0.) {
 			norm = 1./pow(diag.second.real(), .5);
 		}
 		for (size_t p = 0; p < _nPoints; ++p) {
 			_points[p][a] = _amplitudes[a]->eval(dataPoints[p]);
+			if (std::isnan(_points[p][a].real()) || std::isnan(_points[p][a].imag())) {
+				std::cout << "logLikelihood::loadDataPoints(...): ERROR: NaN amplitude encountered for wave '" << _amplitudes[a]->name() << "': " << _points[p][a] << std::endl;
+				return false;
+			}
+
 			if (norm == 0. && _points[p][a] != 0.) {
 				std::cout << "logLikelihood::loadDataPoints(...): ERROR: Zero-norm wave has non-vanishing amplitude" << std::endl;
 				return false;
@@ -856,7 +861,7 @@ logLikelihoodAllFree::logLikelihoodAllFree (std::vector<double> binning, std::ve
 			throw;
 		}
 	}
-	if (not _kinSignature->nKin() == 3) {
+	if (_kinSignature->nKin() != 3) {
 		std::cout << "Number of kinemtaic variables is not three... unknown prcess... Abortring..." << std::endl;
 		throw;
 	}
@@ -917,7 +922,7 @@ std::pair<bool, std::pair<size_t, size_t> > logLikelihoodAllFree::findBin(const 
 	size_t bin1 = 0;
 	bool found2 = false;
 	size_t bin2 = 0;
-	if (not point.size() == _kinSignature->nKin()) {
+	if (point.size() != _kinSignature->nKin()) {
 		std::cout << "logLikelihoodAllFree::findBin(...): Number of kinematic variables does not match" << std::endl;
 		return std::pair<bool, std::pair<size_t, size_t> >(false, std::pair<size_t, size_t>(0,0));
 	}

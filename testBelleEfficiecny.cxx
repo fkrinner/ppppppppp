@@ -1,11 +1,21 @@
-
 #include <iostream>
 #include <fstream>
 #include "BELLE_efficiency.h"
 #include <vector>
 #include "TFile.h"
+#include "TH1D.h"
 #include "TH2D.h"
 #include "getBELLEdata.h"
+#include "phaseSpaceFunctions.h"
+#include "massShape.h"
+#include "constants.h"
+
+double effe(double s) {
+	double rhoTerm = ((1.07885*s + 0.13655)*s - 0.29744)*s - 0.20840;
+	rhoTerm = ((rhoTerm*s + 0.13851)*s - 0.01933)*s + 0.00051;
+	return rhoTerm;
+}
+
 int main() {
 /*
 	TFile* outFile = new TFile("effciency.root", "RECREATE");
@@ -52,23 +62,24 @@ int main() {
 //	makeIDplot(outFileNameBothSidebandsLowerMD , "idPlots_bothSidebandsLowerMD.root");
 //	makeIDplot(outFileNameBothSidebandsHigherMD, "idPlots_bothSidebandsHigherMD.root");
 
-	std::vector<std::pair<double,double> > binning = {std::pair<double,double>(1.85, 1.88),
-
-	                                                  std::pair<double,double>(1.815, 1.915),
-
-	                                                  std::pair<double,double>(1.815 , 1.835),
-	                                                  std::pair<double,double>(1.895 , 1.915),
-       
-	                                                  std::pair<double,double>(1.815 , 1.820),
-	                                                  std::pair<double,double>(1.820 , 1.825),
-	                                                  std::pair<double,double>(1.825 , 1.830),
-	                                                  std::pair<double,double>(1.830 , 1.835),
-
-	                                                  std::pair<double,double>(1.895 , 1.900),
-	                                                  std::pair<double,double>(1.900 , 1.905),
-	                                                  std::pair<double,double>(1.905 , 1.910),
-	                                                  std::pair<double,double>(1.910 , 1.915)
-	};
-	makeDmassBinnedDalitzs(outFileNameBothSidebands, "binned_dalitzs.root", binning, 0, true);
+//	std::vector<std::pair<double,double> > binning = {std::pair<double,double>(1.85, 1.88),
+//
+//	                                                  std::pair<double,double>(1.815, 1.915),
+//
+//	                                                  std::pair<double,double>(1.815 , 1.835),
+//	                                                  std::pair<double,double>(1.895 , 1.915),
+//
+//	                                                  std::pair<double,double>(1.815 , 1.820),
+//	                                                  std::pair<double,double>(1.820 , 1.825),
+//	                                                  std::pair<double,double>(1.825 , 1.830),
+//	                                                  std::pair<double,double>(1.830 , 1.835),
+//
+//	                                                  std::pair<double,double>(1.895 , 1.900),
+//	                                                  std::pair<double,double>(1.900 , 1.905),
+//	                                                  std::pair<double,double>(1.905 , 1.910),
+//	                                                  std::pair<double,double>(1.910 , 1.915)
+//	};
+//	makeDmassBinnedDalitzs(outFileNameBothSidebands, "binned_dalitzs.root", binning, 0, true);
+	makeDmassBinnedDalitzs(outFileNameBothSidebands, "fineBinnedDalitz.root",{std::pair<double, double>(1.815, 1.915)}, 0, true, 3000, 2200);
 	return 0;
 }

@@ -14,6 +14,8 @@ class massShape {
 		bool                         setParName   (size_t n, std::string name);
 		std::pair<bool, std::string> getParName   (size_t n)                   const;
 
+		std::string                  name         () const {return _name;}
+
 	protected:
 		size_t                   _nPar;
 		std::string              _name;
@@ -64,5 +66,53 @@ class polynomialMassShape : public massShape {
 	protected:
 		size_t _polDeg;
 		double _baseExponent;	
+};
+
+class BELLEbreitWigner : public massShape {
+	public:
+		BELLEbreitWigner(std::string name, double mass, double width, size_t spin, double motherMass, double bachelorMass, double daughterMass1, double daughterMass2);
+
+		std::complex<double> eval (double s) const override;
+	protected:
+		size_t _spin;
+
+		double _motherMass;
+		double _bachelorMass;
+		double _daughterMass1;
+		double _daughterMass2;
+
+		double _Rr;		
+		double _RD;
+};
+
+class BELLE_LASS_KpiS : public massShape {
+	public:
+		BELLE_LASS_KpiS(const std::vector<double>& parameters, double mPi, double mKs, bool usePS = false);
+		
+		std::complex<double> eval(double s12) const override;
+	protected:
+		bool   _usePS;
+		double _mPi;
+		double _mKs;
+	
+};
+
+class BELLE_LASS : public massShape {
+	public:
+		BELLE_LASS(const std::vector<double>& parameters, double mPi, double mK);
+
+		std::complex<double> eval(double s12) const override;
+
+	protected:
+		double _mPi;
+		double _mK;
+
+};
+
+class BELLE_KMatrix : public massShape {
+	public:
+		BELLE_KMatrix(const std::vector<double>& parameters);
+
+		std::complex<double> eval(double s12) const override;
 };
 #endif//MASSSHAPE__

@@ -69,18 +69,21 @@ threeParticlaIsobaricAmplitudeNoBose::threeParticlaIsobaricAmplitudeNoBose(size_
 
 std::complex<double> threeParticlaIsobaricAmplitudeNoBose::eval(const std::vector<double>& kin) const {
 	std::complex<double> retVal = _angDep->eval(kin);
-	double mIsob = 0.;
+	double sIsob = 0.;
 	if (_isobarIndex == 12) {
-		mIsob = kin[1];
+		sIsob = kin[1];
 	} else if (_isobarIndex == 13) {
-		mIsob = kin[2];
+		sIsob = kin[2];
 	} else if (_isobarIndex == 23) {
-		mIsob = kin[0] + _sumFSmasses - kin[1] - kin[2];
+		sIsob = kin[0] + _sumFSmasses - kin[1] - kin[2];
 	} else {
 		std::cout << "threeParticlaIsobaricAmplitudeNoBose::eval(...): ERROR: Invalid isobarIndex: " << _isobarIndex << ". Returning 0" << std::endl;
 		return std::complex<double>(0.,0.);
 	} 
-	retVal *= _massShape->eval(mIsob);
+//	if (sIsob < 0.) {
+//		std::cout << _isobarIndex << " " << kin[0] << " " << kin[1] << " " << kin[2] << " " << _sumFSmasses << std::endl;
+//	}
+	retVal *= _massShape->eval(sIsob);
 	return retVal;
 }
 
@@ -109,11 +112,11 @@ dalitzPolynomialAmplitude::dalitzPolynomialAmplitude(std::shared_ptr<kinematicSi
 			break;
 		}
 		if (!(fin>>degY)) {
-			std::cout << "mCosTintensPolynomial(...): ERROR: Invalid configuration file '" << configurationFile << "'" << std::endl;
+			std::cout << "mCosTintensPolynomial(...): ERROR: Invalid configuration file '" << configurationFile << "' (degY)" << std::endl;
 			throw;
 		}
 		if (!(fin>>coeff)) {
-			std::cout << "mCosTintensPolynomial(...): ERROR: Invalid configuration file '" << configurationFile << "'" << std::endl;
+			std::cout << "mCosTintensPolynomial(...): ERROR: Invalid configuration file '" << configurationFile << "' (coeff)" << std::endl;
 			throw;
 		}
 		_xExponents.push_back(degX);

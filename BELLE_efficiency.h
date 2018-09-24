@@ -1,5 +1,5 @@
-#ifndef BELLE_EFFICIENCY
-#define BELLE_EFFICIENCY
+#ifndef BELLE_EFFICIENCY__
+#define BELLE_EFFICIENCY__
 #include<vector>
 
 // BELLE_D0ToK0Spipi_efficiency_correction
@@ -12,4 +12,4 @@ double Efficiency(std::vector<double> x) {
 	return Efficiency(&x[1]); // Start at one, since the 0th entry is s = m_D^2
 }
 
-#endif//BELLE_EFFICIENCY
+#endif//BELLE_EFFICIENCY__
