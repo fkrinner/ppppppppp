@@ -38,7 +38,7 @@ bool integrator::integrate() {
 	for (size_t point = 0; point < _nPoints; ++point) {
 		std::vector<double> kin = _generator->generate();
 		std::vector<std::complex<double> > ampl(nAmpl(), std::complex<double>(0.,0.));
-		double eff = _efficiency->call(kin);
+		double eff = _efficiency->eval(kin);
 		size_t countAmp = 0;
 		for (std::shared_ptr<amplitude> a : _amplitudes) {
 			ampl[countAmp] = a->eval(kin);
@@ -111,11 +111,11 @@ bool integrator::setIntegrals(const std::vector<std::vector<std::complex<double>
 	}
 	for (size_t a_i = 0; a_i < _nAmpl; ++a_i) {
 		if (ps_integral[a_i][a_i].imag() != 0.) {
-			std::cout << "integrator::setIntegrals(...): ERROR: ps_integral has non-vanisihng imaginary part on the diagonal: " << ps_integral[a_i][a_i] << std::endl;
+			std::cout << "integrator::setIntegrals(...): ERROR: ps_integral has non-vanisihng imaginary part on the diagonal: " << ps_integral[a_i][a_i] << "(wave '" << _amplitudes[a_i]->name() << "')" << std::endl;
 			return false;
 		}
 		if (ac_integral[a_i][a_i].imag() != 0.) {
-			std::cout << "integrator::setIntegrals(...): ERROR: ac_integral has non-vanisihng imaginary part on the diagonal: " << ac_integral[a_i][a_i] << std::endl;
+			std::cout << "integrator::setIntegrals(...): ERROR: ac_integral has non-vanisihng imaginary part on the diagonal: " << ac_integral[a_i][a_i]  << "(wave '" << _amplitudes[a_i]->name() << "')" << std::endl;
 			return false;
 		}
 		for (size_t a_j = 0; a_j < a_i; ++a_j) {
@@ -211,7 +211,7 @@ std::pair<bool, std::complex<double> > integrator::element(size_t i, size_t j, b
 
 std::pair<bool, std::vector<double> > integrator::getNormalizations(bool accCorr) const {
 	if (!_isIntegrated) {
-		std::cout << "integrator::getNormalizations(...): ERROR: Cannot get normnalizations before integration" << std::endl;
+		std::cout << "integrator::getNormalizations(...): ERROR: Cannot get normalizations before integration" << std::endl;
 		return std::pair<bool, std::vector<double> >(false, std::vector<double>());
 	}
 	std::vector<double> retVal(_nAmpl);
@@ -223,7 +223,7 @@ std::pair<bool, std::vector<double> > integrator::getNormalizations(bool accCorr
 			val = _integralMatrix[a][a];
 		}
 		if (val.imag() != 0.) {
-			std::cout << "integrator::getNormalizations(...): ERROR: non-vanishing imaginary part on the diagonal" << std::endl;
+			std::cout << "integrator::getNormalizations(...): ERROR: non-vanishing imaginary part on the diagonal (wave: '" << _amplitudes[a]->name() << "')" << std::endl;
 			return std::pair<bool, std::vector<double> >(false, std::vector<double>());
 		}
 		if (val.real() == 0.) {

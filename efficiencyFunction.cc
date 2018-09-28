@@ -5,7 +5,7 @@
 #include"math.h"
 efficiencyFunction::efficiencyFunction() : _kinSignature(std::make_shared<kinematicSignature>(0)) {}
 
-double efficiencyFunction::call(const std::vector<double>& kin) const {
+double efficiencyFunction::eval(const std::vector<double>& kin) const {
 	(void) kin;
 	std::cerr << "efficiencyFunction::operator(): ERROR: Called base class method. Returning zero." << std::endl;
 	return 0.;
@@ -15,7 +15,7 @@ threeParticlPerfectEfficiency::threeParticlPerfectEfficiency (std::shared_ptr<ki
 	_kinSignature = kinSig;
 }
 
-double threeParticlPerfectEfficiency::call(const std::vector<double>& kin) const {
+double threeParticlPerfectEfficiency::eval(const std::vector<double>& kin) const {
 	(void) kin;
 	return 1.;
 }
@@ -24,7 +24,7 @@ BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency(): _minM2Pisquared(0.), _ma
 	_kinSignature = std::make_shared<kinematicSignature>(2);
 }
 
-double BELLE_DtoKpipi_efficiency::call(const std::vector<double>& kin) const {
+double BELLE_DtoKpipi_efficiency::eval(const std::vector<double>& kin) const {
 	if (kin[2] < _minM2Pisquared) {
 		double p1pK = (kin[1] - mPi*mPi - mKs*mKs)/2;
 		double Epi  = pow(kin[2],.5)/2.; // Half the isobar mass in the isobar rest frame

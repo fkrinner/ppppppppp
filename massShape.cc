@@ -125,10 +125,10 @@ std::complex<double> polynomialMassShape::eval(double s12) const {
 BELLEbreitWigner::BELLEbreitWigner(std::string name, double mass, double width, size_t spin, double motherMass, double bachelorMass, double daughterMass1, double daughterMass2) :
 	massShape("BELLEbw_"+name, {mass, width}, {name+"_mass", name+"_width"}), _spin(spin), _motherMass(motherMass), _bachelorMass(bachelorMass), _daughterMass1(daughterMass1), _daughterMass2(daughterMass2), _Rr(1.5), _RD(5.)
 {
-	if (_motherMass - _bachelorMass < _parameters[0]) {
-		std::cout  << "BELLEbreitWigner::BELLEbreitWigner(...): ERROR: On shell resonance mass of '" << _name << "' too heavy for decay of mother particle: " << _motherMass << " -> " << _parameters[0] << " + " << _bachelorMass << std::endl;
-		throw;
-	}
+//	if (_motherMass - _bachelorMass < _parameters[0]) {
+//		std::cout  << "BELLEbreitWigner::BELLEbreitWigner(...): ERROR: On shell resonance mass of '" << _name << "' too heavy for decay of mother particle: " << _motherMass << " -> " << _parameters[0] << " + " << _bachelorMass << std::endl;
+//		throw;
+//	}
 	if (_daughterMass1 + _daughterMass2 > _parameters[0]) {
 		std::cout << "BELLEbreitWigner::BELLEbreitWigner(...): ERROR: On shell resonance mass of '" << _name << "' too light for decay into daughter particles: " << _parameters[0] << " -> " << _daughterMass1 << " + " << _daughterMass2 << std::endl;
 		throw;
@@ -157,22 +157,24 @@ std::complex<double> BELLEbreitWigner::eval(double s12) const {
 	const double pr  = pow(pow(sr - sDaughter1 - sDaughter2, 2) - 4*sDaughter1*sDaughter2, .5)/2/_parameters[0];
 	const double pAB = pow(pow(s12 - sDaughter1 - sDaughter2, 2) - 4*sDaughter1*sDaughter2, .5)/2/m12;
 
-	const double pD   = pow(pow(S - sr - sBatch, 2) - 4*sr*sBatch, .5)/2/_motherMass;
+//	const double pD   = pow(pow(S - sr - sBatch, 2) - 4*sr*sBatch, .5)/2/_motherMass;
 	const double pABC = pow(pow(S - s12 - sBatch, 2) - 4*s12*sBatch, .5)/2/_motherMass;
 
 	double Fr = 1.;
 	double FD = 1.;
 	if (_spin == 1) {
 		Fr = pow((pow(_Rr*pr,2)+1)/(pow(_Rr*pAB,2)+1),.5);
-		FD = pow((pow(_RD*pD,2)+1)/(pow(_RD*pABC,2)+1),.5);
+//		FD = pow((pow(_RD*pD,2)+1)/(pow(_RD*pABC,2)+1),.5);
+		FD = pow(1./(pow(_RD*pABC,2)+1),.5);
 	} else if (_spin == 2) {
 		const double xr =  _Rr*_Rr*pr *pr;
 		const double xAB = _Rr*_Rr*pAB*pAB;
 		Fr = pow((pow(xr-3.,2) + 9*xr)/(pow(xAB-3.,2) + 9*xAB),.5);
 
-		const double xD   = _RD*_RD*pD  *pD;
+//		const double xD   = _RD*_RD*pD  *pD;
 		const double xABC = _RD*_RD*pABC*pABC;
-		FD = pow((pow(xD-3.,2) + 9*xD)/(pow(xABC-3.,2) + 9*xABC),.5);
+//		FD = pow((pow(xD-3.,2) + 9*xD)/(pow(xABC-3.,2) + 9*xABC),.5);
+		FD = pow(1./(pow(xABC-3.,2) + 9*xABC),.5);
 	}
 	
 	const double Gamma = _parameters[1]* _parameters[0]/m12 * Fr*Fr * pow(pAB/pr, 2*_spin+1);

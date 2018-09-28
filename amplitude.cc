@@ -258,7 +258,64 @@ bool mCosTintensPolynomial::setMlimits(const std::pair<double,double> newLimits)
 	return true;
 }
 
+lookupAmplitudeIntens::lookupAmplitudeIntens(std::shared_ptr<kinematicSignature> kinSignature, const std::string& name, double sMinX, double widthX, double sMinY, double widthY, const std::vector<std::vector<double> >& intensities) :
+	amplitude(kinSignature, name), _nX(0), _nY(0), _sMinX(sMinX), _widthX(widthX), _sMinY(sMinY), _widthY(widthY), _data(0) {
 
+	if (_kinSignature->nKin() != 3) {
+		std::cout << "lookupAmplitudeIntens::lookupAmplitudeIntens(...): ERROR: Number of kinematic variables not 3" << std::endl;
+		throw;
+	}
+	_nX = intensities.size();
+	if (_nX == 0) {
+		std::cout << "lookupAmplitudeIntens::lookupAmplitudeIntens(...): ERROR: No data points given" << std::endl;
+		throw;
+	}
+	_nY = intensities[0].size();
+	if (_nY == 0) {
+		std::cout << "lookupAmplitudeIntens::lookupAmplitudeIntens(...): ERROR: Invalid size of first line" << std::endl;
+		throw;
+	}
+	for (std::vector<double> line : intensities) {
+		if (line.size() != _nY) {
+			std::cout << "lookupAmplitudeIntens::lookupAmplitudeIntens(...): ERROR: Line size mismatch" << std::endl;
+			throw;
+		}
+	}
+	_data = std::vector<std::vector<double> >(_nX, std::vector<double>(_nY, 0.));
+	for (size_t i = 0; i < _nX; ++i) {
+		for (size_t j = 0; j < _nY; ++j) {
+			double val = intensities[i][j];
+			if (val < 0.) {
+				std::cout << "lookupAmplitudeIntens::lookupAmplitudeIntens(...): WARNING: Intensity below zero encountered: " << intensities[i][j] <<". Set the square root to zero" << std::endl;
+				continue;
+			}
+			_data[i][j] = pow(val, .5);
+		}
+	}
+
+}
+
+std::complex<double> lookupAmplitudeIntens::eval(const std::vector<double>& kin) const {
+	if (kin[1] < _sMinX) {
+		std::cout << "lookupAmplitudeIntens::eval(...): ERROR: kin[1] = " << kin[1] << " < _sXmin = " << _sMinX << std::endl;
+		throw;
+	}
+	size_t i = (size_t)((kin[1]-_sMinX)/_widthX);
+	if (i >= _nX) {
+		std::cout << "lookupAmplitudeIntens::eval(...): ERROR: i = " << i << " > _nX = " << _nX << " (kin[1] = " << kin[1] << ", _sMinX = " << _sMinX << ", widthX = " << _widthX <<  ")" << std::endl;
+		throw;
+	}
+	if (kin[2] < _sMinY) {
+		std::cout << "lookupAmplitudeIntens::eval(...): ERROR: kin[2] = " << kin[2] << " < _sYmin = " << _sMinY << std::endl;
+		throw;
+	}
+	size_t j = (size_t)((kin[2]-_sMinY)/_widthY);
+	if (j >= _nY) {
+		std::cout << "lookupAmplitudeIntens::eval(...): ERROR: j = " << j << " > _nY = " << _nY << " (kin[2] = " << kin[2] << ", _sMinY = " << _sMinY << ", widthY = " << _widthY << ")"  << std::endl;
+		throw;
+	}
+	return std::complex<double>(_data[i][j], 0.);
+}
 
 
 

@@ -773,7 +773,6 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 				std::cout << "logLikelihood::loadDataPoints(...): ERROR: NaN amplitude encountered for wave '" << _amplitudes[a]->name() << "': " << _points[p][a] << std::endl;
 				return false;
 			}
-
 			if (norm == 0. && _points[p][a] != 0.) {
 				std::cout << "logLikelihood::loadDataPoints(...): ERROR: Zero-norm wave has non-vanishing amplitude" << std::endl;
 				return false;

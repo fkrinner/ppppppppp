@@ -9,6 +9,7 @@
 #include "phaseSpaceFunctions.h"
 #include "massShape.h"
 #include "constants.h"
+#include "utils.h"
 
 double effe(double s) {
 	double rhoTerm = ((1.07885*s + 0.13655)*s - 0.29744)*s - 0.20840;
@@ -17,6 +18,7 @@ double effe(double s) {
 }
 
 int main() {
+
 /*
 	TFile* outFile = new TFile("effciency.root", "RECREATE");
 	TH2D*  hist = new TH2D("eff", "eff", 200, 0., 4., 200., 0., 4.);
@@ -80,6 +82,6 @@ int main() {
 //	                                                  std::pair<double,double>(1.910 , 1.915)
 //	};
 //	makeDmassBinnedDalitzs(outFileNameBothSidebands, "binned_dalitzs.root", binning, 0, true);
-	makeDmassBinnedDalitzs(outFileNameBothSidebands, "fineBinnedDalitz.root",{std::pair<double, double>(1.815, 1.915)}, 0, true, 3000, 2200);
+	makeDmassBinnedDalitzs(outFileNameBothSidebands, "fineBinnedDalitz.root",{std::pair<double, double>(1.815, 1.915)}, 0, true, 300, 300);
 	return 0;
 }

@@ -11,7 +11,7 @@ class efficiencyFunction {
 		size_t                              nKin        ()         const {return _kinSignature->nKin();};
 		std::shared_ptr<kinematicSignature> kinSignature()         const {return _kinSignature;}
 
-		virtual double call(const std::vector<double>& kin)          const;
+		virtual double eval(const std::vector<double>& kin) const;
 	protected:
 		std::shared_ptr<kinematicSignature> _kinSignature;
 };
@@ -20,7 +20,7 @@ class threeParticlPerfectEfficiency : public efficiencyFunction {
 	public:
 		threeParticlPerfectEfficiency (std::shared_ptr<kinematicSignature> kinSig = std::make_shared<kinematicSignature>(1));
 
-		virtual double call(const std::vector<double>& kin)          const;
+		double eval(const std::vector<double>& kin) const override;
 		
 };
 
@@ -28,7 +28,7 @@ class BELLE_DtoKpipi_efficiency : public efficiencyFunction {
 	public: // Kineamtic variable are {m_D^2, m_{Kpi(RS}^2, m_{pipi}^2}
 		BELLE_DtoKpipi_efficiency ();
 
-		virtual double call(const std::vector<double>& kin)          const;
+		double eval(const std::vector<double>& kin) const override;
 
 		bool setMpipiCosTCut(const double minM2Pi, const double maxAbsCosT) {_minM2Pisquared=minM2Pi*minM2Pi; _maxAbsCosT = maxAbsCosT; return true;}
 	private:

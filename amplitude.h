@@ -105,4 +105,22 @@ class mCosTintensPolynomial : public amplitude {
 		std::vector<double>      _coefficients;
 		std::vector<double>      _fsMasses;
 };
+
+class lookupAmplitudeIntens : public amplitude {
+	public:
+		lookupAmplitudeIntens(std::shared_ptr<kinematicSignature> kinSignature, const std::string& name, double sMinX, double widthX, double sMinY, double widthY, const std::vector<std::vector<double> > & intensities);
+
+		std::complex<double> eval(const std::vector<double>& kin) const override;
+	protected:
+		size_t _nX;
+		size_t _nY;
+
+		double _sMinX;
+		double _widthX;
+
+		double _sMinY;
+		double _widthY;
+
+		std::vector<std::vector<double> > _data;
+};
 #endif//AMPLITUDE__

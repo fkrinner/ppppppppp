@@ -180,13 +180,16 @@ void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outF
 	TLeaf* L_m12 = branch-> GetLeaf("D0_massconstrained_mass_squared12");
 	TLeaf* L_spc = branch-> GetLeaf("softpion_charge");
 	std::vector<TH2D> hists;
+	std::vector<TH2D> hists_ortho;
 	for (std::pair<double, double> bin: binning) {
 		if (bin.first > bin.second) {
 			std::cout << "makeDmassBinedDalitzs(...): ERROR: Bin borders have to be ordered" << std::endl;
 			throw;
 		}
 		std::string name = std::string("dalitz_")+std::to_string(bin.first) + std::string("-") + std::to_string(bin.second);
-		hists.push_back(TH2D(name.c_str(), name.c_str(), nBinsX, 0.3,3.3, nBinsY ,0. , 2.2));
+		hists.push_back(TH2D(name.c_str(), name.c_str(), nBinsX, 0.,3., nBinsY ,0. , 3.));
+		name += "_ortho";
+		hists_ortho.push_back(TH2D(name.c_str(), name.c_str(), nBinsX, 0.,3., nBinsY ,0. , 3.));
 	}
 	for (int i = 0, N = treenew->GetEntries(); i < N; ++i) {
 		treenew->GetEntry(i);
@@ -199,23 +202,30 @@ void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outF
 		}
 		double mX;
 		double mY;
+		double mZ;
 		double mD = L_mD0->GetValue(0);
 		if (L_spc->GetValue(0) == 1. or not SIGNSWITCH) {
 			mX = L_m01->GetValue(0);
 			mY = L_m12->GetValue(0);
+			mZ = L_m02->GetValue(0);
 		} else {
 			mX = L_m02->GetValue(0);
 			mY = L_m12->GetValue(0);
+			mZ = L_m01->GetValue(0);
 		}
 		for (size_t b = 0; b < binning.size(); ++b) {
 			if (mD < binning[b].first || mD > binning[b].second) {
 				continue;
 			}
 			hists[b].Fill(mX, mY);
+			hists_ortho[b].Fill(mX, mZ);
 		}
 	}
 	TFile *file = new TFile(outFileName.c_str(), "RECREATE");
 	for (TH2D& h: hists) {
+		h.Write();
+	}
+	for (TH2D& h: hists_ortho) {
 		h.Write();
 	}
 	file->Close();

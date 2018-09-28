@@ -28,7 +28,7 @@ class BELLE_bw_amplitude:
 		self.s      = M**2 + m1**2 + m2**2 + m3**2
 		self.bw     = bw
 
-	def __call__(self, mpp2, mKp2):
+	def __call__(self, mKp2, mpp2):
 		if self.isob == 'pp':
 			return abs(self.bw(mpp2))**2
 		elif self.isob == 'Kp1':
@@ -271,7 +271,7 @@ def main():
 	K1680BW_2 = BELLE_bw_amplitude('Kp2', mD0, mKs, mPi, mPi, BELLE_bw(1.717,.322,    1, mD0, mKs, mPi, mPi, 'K1680'))	
 
 
-	inFileName = "./build/binned_dalitzs.root"
+	inFileName = "./build/fineBinnedDalitz.root"
 	histName2  = "dalitz_1.815000-1.915000"
 #	histName   = "cosTp_vs_m2pp"
 	masses     = [ ]
@@ -292,7 +292,7 @@ def main():
 					if x < 0. or y < 0. or resl-x-y < 0.:
 						continue
 					try:
-						c,m,j = getCosTmPP(x,y)
+						c,m,j = getCosTmPP(y,x)
 					except ValueError:
 						continue
 					if abs(c) > 1.:
@@ -317,21 +317,21 @@ def main():
 		print xMin, "< x <",xMax
 		print yMin, "< y <",yMax
 
-		fSet   = []
-		fSet= [rhoBW,K892BW_1,K1430BW_1,K1680BW_1,K892BW_2,K1430BW_2,K1680BW_2]
-		maxDim = 10
+		fSet = []
+		fSet = [rhoBW,K892BW_1,K1430BW_1,K1680BW_1,K892BW_2,K1430BW_2,K1680BW_2]
+		maxDim = 7
 		for i in range(maxDim):
-			if i == 1:
-				continue
-			for j in range(maxDim):
-				if j == 1:
-					continue
+#			if i == 1:
+#				continue
+			for j in range(maxDim-i):
+#				if j == 1:
+#					continue
 #				fSet.append(legendre_with_transformation(i,xMin,xMax,j,yMin,yMax))
 				fSet.append(legendre(i, xMin, xMax, j, yMin, yMax))
 
 
 		bestModel = c2ndfScan(masses, values, fSet)
-#		return
+		print len(bestModel)
 
 #		bestModel = [0, 1, 30, 2, 20, 5, 44, 23, 71, 21, 40, 3, 4, 14, 6,
 #		             24, 17, 80, 54, 9, 79, 50, 47, 29, 97, 77, 78, 90,
@@ -395,6 +395,18 @@ def main():
 		jacPlot  = dalitz.Clone()
 		dalModel = dalitz.Clone()
 
+		lesData = dalitz.Clone()
+		lesData.Reset()
+		lesData.SetName("data_replot")
+		lesData.SetTitle("Data replot")
+
+		if not len(values) == len(masses):
+			raise ValueError("Da haben wir der Uebeltaeter")
+		for i in range(len(values)):
+			binX = lesData.GetXaxis().FindBin(masses[i][0])
+			binY = lesData.GetYaxis().FindBin(masses[i][1])
+			lesData.SetBinContent(binX, binY, values[i])
+
 	#	jacPlot.Reset()
 	#	jacPlot.SetTitle("Jacobian")
 	#	jacPlot.SetName("Jacobian")
@@ -403,28 +415,18 @@ def main():
 		dalModel.SetTitle("Dalitz model")
 		dalModel.SetName("Dalitz_model")
 
-		for i in range(dalitz.GetNbinsX()):
-			mpp2 = dalitz.GetXaxis().GetBinCenter(i+1)
-			for j in range(dalitz.GetNbinsY()):
-				dat = dalitz.GetBinContent(i+1,j+1)
+		for i in range(lesData.GetNbinsX()):
+			mKp2 = lesData.GetXaxis().GetBinCenter(i+1)
+			for j in range(lesData.GetNbinsY()):
+				dat = lesData.GetBinContent(i+1,j+1)
 				if dat == 0.:
 					continue
 				ndf += 1
-				mKp2 = dalitz.GetYaxis().GetBinCenter(j+1)
-				try:
-					cosT, mpp, jac = getCosTmPP(mpp2, mKp2)
-					print mpp2, mKp2, cosT, mpp
-				except ValueError:
-					print "ERRR at",mpp2, mKp2
-					continue
-				if abs(cosT) > 1:
-					continue
-
+				mpp2 = lesData.GetYaxis().GetBinCenter(j+1)
 				val = 0.
 				try:
 					for f,func in enumerate(bestFset):
-		#				val += coeffs[f]*func(cosT,mpp)
-						val += coeffs[f]*func(mpp2, mKp2)
+						val += coeffs[f]*func(mKp2, mpp2)
 					dalModel.SetBinContent(i+1,j+1, val)
 				except ValueError:
 					continue
@@ -435,6 +437,7 @@ def main():
 #			histTheo.Write()
 #			jacPlot.Write()
 			dalModel.Write()
+			lesData.Write()
 
 		dalitz.Draw("colz")
 
