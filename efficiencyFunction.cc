@@ -21,14 +21,10 @@ double threeParticlPerfectEfficiency::eval(const std::vector<double>& kin) const
 	return 1.;
 }
 
-BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency() : _kin1max(std::numeric_limits<double>::infinity())
-{
+BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency() {
 	_kinSignature = std::make_shared<kinematicSignature>(2);
 }
 
 double BELLE_DtoKpipi_efficiency::eval(const std::vector<double>& kin) const {
-	if (kin[1] > _kin1max) {
-		return 0.;
-	}
 	return Efficiency(kin);
 }

@@ -157,7 +157,7 @@ namespace utils {
 		return true;
 	}
 
-	std::vector<std::vector<double> > sanitizeBELLEdataPoints(const std::vector<std::vector<double> >& inData, const std::vector<double>& fsMasses, double kin1max = std::numeric_limits<double>::infinity()) {
+	std::vector<std::vector<double> > sanitizeBELLEdataPoints(const std::vector<std::vector<double> >& inData, const std::vector<double>& fsMasses) {
 		if (fsMasses.size() != 3) {
 			std::cout << "utils::sanitizeBELLEdataPoints(...): ERROR: fsMasses has to have size 3" << std::endl;
 			throw;
@@ -170,7 +170,7 @@ namespace utils {
 		size_t count = 0;
 		std::vector<std::vector<double> > retVal(nIn, std::vector<double>(dim, 0.));
 		for (const std::vector<double> & point : inData) {
-			if (isSanePoint(point, fsMasses) && point[1] <= kin1max) {
+			if (isSanePoint(point, fsMasses)) {
 				retVal[count][0] = point[0];
 				retVal[count][1] = point[1];
 				retVal[count][2] = point[2];

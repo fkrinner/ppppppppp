@@ -29,11 +29,5 @@ class BELLE_DtoKpipi_efficiency : public efficiencyFunction {
 		BELLE_DtoKpipi_efficiency ();
 
 		double eval(const std::vector<double>& kin) const override;
-
-		bool setKin1max(double val) {_kin1max = val; return true;}
-
-	private:
-		double _kin1max;
-		
 };
 #endif//EFFICIENCYFUNCTION__
