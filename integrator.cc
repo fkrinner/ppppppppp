@@ -241,7 +241,7 @@ double integrator::totalIntensity(const std::vector<std::complex<double> >& prod
 		return 0.;
 	}
 	if (prodAmpl.size() != nAmpl()) {
-		std::cerr << "integrator::totalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
+		std::cerr << "integrator::totalIntensity(...): ERROR: Number of production amplitudes does not match. Returning zero." << std::endl;
 		return 0.;
 	}
 //	const std::vector<std::vector<std::complex<double> > > &integralMatrix = accCorr ? _accCorrIntegralMatrix : _integralMatrix;
@@ -280,7 +280,7 @@ std::vector<double> integrator::DtotalIntensity(const std::vector<std::complex<d
 		return std::vector<double>();
 	}
 	if (prodAmpl.size() != nAmpl()) {
-		std::cerr << "integrator::DtotalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
+		std::cerr << "integrator::DtotalIntensity(...): ERROR: Number of production amplitudes does not match. Returning zero." << std::endl;
 		return std::vector<double>();
 	}
 	std::vector<double> retVal(2*nAmpl(), 0.);
@@ -314,7 +314,7 @@ std::vector<std::vector<double> > integrator::DDtotalIntensity(const std::vector
 		return std::vector<std::vector<double> >();
 	}
 	if (prodAmpl.size() != nAmpl()) {
-		std::cerr << "integrator::DDtotalIntensity(...): ERROR: Number of prodiction amplitudes does not match. Returning zero." << std::endl;
+		std::cerr << "integrator::DDtotalIntensity(...): ERROR: Number of production amplitudes does not match. Returning zero." << std::endl;
 		return std::vector<std::vector<double> >();
 	}
 	std::vector<std::vector<double> > retVal(2*nAmpl(), std::vector<double>(2*nAmpl(),0.));

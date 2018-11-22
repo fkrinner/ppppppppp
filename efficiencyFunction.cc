@@ -1,6 +1,7 @@
 #include"efficiencyFunction.h"
 #include"BELLE_efficiency.h"
 #include<iostream>
+#include<limits>
 #include"constants.h"
 #include"math.h"
 efficiencyFunction::efficiencyFunction() : _kinSignature(std::make_shared<kinematicSignature>(0)) {}
@@ -20,23 +21,14 @@ double threeParticlPerfectEfficiency::eval(const std::vector<double>& kin) const
 	return 1.;
 }
 
-BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency(): _minM2Pisquared(0.), _maxAbsCosT(1.) {
+BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency() : _kin1max(std::numeric_limits<double>::infinity())
+{
 	_kinSignature = std::make_shared<kinematicSignature>(2);
 }
 
 double BELLE_DtoKpipi_efficiency::eval(const std::vector<double>& kin) const {
-	if (kin[2] < _minM2Pisquared) {
-		double p1pK = (kin[1] - mPi*mPi - mKs*mKs)/2;
-		double Epi  = pow(kin[2],.5)/2.; // Half the isobar mass in the isobar rest frame
-		double EKs  = (mD0*mD0 - kin[2] - mKs*mKs)/4/Epi; // 4*Epi = 2*mPiPi = 2*pow(kin[2],.5)
-		double pPi  = pow(Epi*Epi - mPi*mPi, .5);
-		double pKs  = pow(EKs*EKs - mKs*mKs, .5);
-
-		double cosT = (Epi*EKs - p1pK)/pPi/pKs;
-
-		if (abs(cosT) > _maxAbsCosT) {
-			return 0.;
-		}
+	if (kin[1] > _kin1max) {
+		return 0.;
 	}
 	return Efficiency(kin);
 }

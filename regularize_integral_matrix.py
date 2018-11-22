@@ -1,10 +1,25 @@
-#!/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/Python_ultra/Python-2.7.10/bin/python
+#!/usr/bin/python
 # regularize_integral_matrix.py
 # Created: 2018-07-20 15:35:27.287781
 # Author: Fabian Krinner
 import os, sys
 import numpy as np
 import numpy.linalg as la
+
+def isHermitian(matrix, numLim = 1.e-15):
+	dim = len(matrix)
+	nhCount = 0
+	maxDiff = 0.
+	for i in range(dim):
+		for j in range(i+1):
+			diff = abs(matrix[i,j] - np.conj(matrix[j,i]))
+			if diff > numLim:
+				nhCount += 1
+				maxDixx = max(maxDiff, diff)
+	if nhCount == 0:
+		return True
+	print nhCount,"non-hermitian pairs of entries (maxDiff =", maxDiff,")"
+	return False
 
 def toComplex(s):
 	chunks = s[1:~0].split(',')
@@ -31,56 +46,50 @@ def writeMatrixFile(outFileName, matrix):
 				outFile.write(toString(matrix[i,j])+' ')
 			outFile.write('\n')
 
+def regulatrizeMatrix(matrix):
+	iterCount = 0
+	while True:
+		val, vec = la.eig(matrix)
+		indices = []
+		for i,v in enumerate(val):
+			if v.real < 0.:
+				print v," !!!"
+				indices.append(i)
+		if len(indices) == 0:
+			break
+		for i in indices:
+			for j in range(len(val)):
+				for k in range(len(val)):
+					matrix[j,k] -= 2*val[i]*vec[j,i]*vec[k,i]
+		iterCount += 1
+		print "interation",iterCount
+		for i in range(len(matrix)):
+			matrix[i,i] = matrix[i,i].real
+	return matrix
+
 def regularize(inFileNames, outFileName):
 	matrix = parseMatrixFile(inFileNames[0])
 	for i in range(1,len(inFileNames)):
-		matrix += parseMatrixFile(inFileNames[i]) 
-	val, vec = la.eig(matrix)
-	indices = []
-	for i,v in enumerate(val):
-		if v.real < 0.:
-			print v," !!!"
-			indices.append(i)
-	for i in indices:
-		for j in range(len(val)):
-			for k in range(len(val)):
-				matrix[j,k] -= 2*val[i]*vec[j,i]*vec[k,i]
-	writeMatrixFile(outFileName, matrix)
+		matrix += parseMatrixFile(inFileNames[i])
+	writeMatrixFile(outFileName, regulatrizeMatrix(matrix))
 
 def main():
-	import ROOT
-
-	inFileNames  = ["./build/ac_integral_finer_binning.dat","./build/ac_model_integral.dat"]
-	inFileNames  = ["./build/ps_integral_finer_binning.dat","./build/ps_model_integral.dat"]
-	mm = parseMatrixFile(inFileNames[0])
-	mm += parseMatrixFile(inFileNames[1])
-	delta = 103
-	hist = ROOT.TH1D('h','h',100, .9, 1.1)
-	count = 0
-	for i in range(delta):
-		for j in range(delta):
-			if mm[i,j] != 0.:
-				rat = mm[i+delta,j+delta]/mm[i,j]
-				hist.Fill(rat)
-				count += 1
-			if mm[i+delta,j] != 0.:
-				rat = mm[i,j+delta]/mm[i+delta,j]
-				hist.Fill(rat)
-				count += 1
-			if mm[i,j+delta] != 0.:
-				rat = mm[i+delta,j]/mm[i,j+delta]
-				hist.Fill(rat)
-				count += 1
-	print count
-	hist.Draw()
-	raw_input()
-
-
-	outFileName = "./build/ac_integral_bg_model_regular_merged.dat"
-#	regularize(inFileNames, outFileName)
-	inFileNames  = ["./build/ps_integral_finer_binning.dat","./build/ps_model_integral.dat"]
-	outFileName = "./build/ps_integral_bg_model_regular_merged.dat"
-#	regularize(inFileNames, outFileName)
+	if len(sys.argv) == 1:
+		folder = "./build/integralFiles/"
+		for fn in os.listdir(folder):
+			if 'regular' in fn:
+				continue
+			print fn,"<-------------------"
+			if fn.endswith('.dat'):
+				inFileName = folder + fn
+				print inFileName
+#				mm = parseMatrixFile(inFileName)
+				outFileName = inFileName.replace(".dat","_regular.dat")
+				regularize([inFileName], outFileName)
+	else:
+		inFileName = sys.argv[1]
+		outFileName = inFileName.replace(".dat","_regular.dat")
+		regularize([inFileName], outFileName)
 
 if __name__ == "__main__":
 	main()

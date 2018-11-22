@@ -15,6 +15,16 @@ std::complex<double> amplitude::eval(const std::vector<double>& kin) const {
 	return std::complex<double>(0.,0.);
 }
 
+constantAmplitude::constantAmplitude(std::shared_ptr<kinematicSignature> kinSignature) : amplitude(kinSignature, "constantAmplitude") {}
+
+std::complex<double> constantAmplitude::eval(const std::vector<double>& kin) const {
+	if (kin.size() != _kinSignature->nKin()) {
+		std::cerr << "constantAmplitude::eval(...): ERROR: Number of kinematic variables does not match (" << kin.size() << " != " << _kinSignature->nKin() << "). Returning zero." << std::endl;
+		return std::complex<double>(0.,0.);
+	}
+	return std::complex<double>(1.,0.);
+}
+
 threeParticleIsobaricAmplitude::threeParticleIsobaricAmplitude(bool boseSymmetrize, std::string name, std::shared_ptr<massShape> shape, std::shared_ptr<angularDependence> angDep):
 	amplitude(angDep->kinSignature(), name), _bose(boseSymmetrize), _massShape(shape), _angDep(angDep) {}
 
@@ -317,6 +327,16 @@ std::complex<double> lookupAmplitudeIntens::eval(const std::vector<double>& kin)
 	return std::complex<double>(_data[i][j], 0.);
 }
 
+lookupAmplitudeIntens_efficiency::lookupAmplitudeIntens_efficiency(std::shared_ptr<efficiencyFunction> efficiency, std::shared_ptr<kinematicSignature> kinSignature, const std::string& name, double sMinX, double widthX, double sMinY, double widthY, const std::vector<std::vector<double> >& intensities) : lookupAmplitudeIntens(kinSignature,name,sMinX,widthX,sMinY,widthY,intensities), _efficiency(efficiency) {
+	if (!(*(_efficiency->kinSignature()) == *(_kinSignature))) {
+		std::cout << "lookupAmplitudeIntens_efficiency::lookupAmplitudeIntens_efficiency(...): ERROR: Kinematic signatures do not match" << std::endl;
+		throw;
+	}
+}
 
+std::complex<double> lookupAmplitudeIntens_efficiency::eval(const std::vector<double>& kin) const {
+	std::complex<double> retVal = lookupAmplitudeIntens::eval(kin);
+	return retVal/pow(_efficiency->eval(kin),.5);
+}
 
 

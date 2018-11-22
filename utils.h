@@ -7,6 +7,9 @@
 #include<fstream>
 #include<complex>
 #include<iomanip>
+#include<memory>
+
+#include"logLikelihood.h"
 
 namespace utils {
 	void opening() {
@@ -50,6 +53,20 @@ namespace utils {
 			std::cout << "utils::checkComplexDouble(): ERROR: Complex double may not be reinterpreted as re, im array" << std::endl;
 		}
 		return works;
+	}
+
+	std::vector<double> readRealValuesFromTextFile(const std::string& inFileName, bool allowZeroLength = false) {
+		std::vector<double> retVal;
+		double v;
+		std::ifstream fin(inFileName.c_str(), std::ifstream::in);
+		while (fin>>v) {
+			retVal.push_back(v);
+		}
+		if (retVal.size() == 0 and allowZeroLength) {
+			std::cout << "utils::readRealValuesFromTextFile(...): ERROR: No values could be read" << std::endl;
+			throw;
+		}
+		return retVal;
 	}
 
 	std::vector<std::complex<double> > readComplexValuesFromTextFile(const std::string& inFileName, bool allowZeroLength = false) {
@@ -140,7 +157,7 @@ namespace utils {
 		return true;
 	}
 
-	std::vector<std::vector<double> > sanitizeBELLEdataPoints(const std::vector<std::vector<double> >& inData, const std::vector<double>& fsMasses) {
+	std::vector<std::vector<double> > sanitizeBELLEdataPoints(const std::vector<std::vector<double> >& inData, const std::vector<double>& fsMasses, double kin1max = std::numeric_limits<double>::infinity()) {
 		if (fsMasses.size() != 3) {
 			std::cout << "utils::sanitizeBELLEdataPoints(...): ERROR: fsMasses has to have size 3" << std::endl;
 			throw;
@@ -153,7 +170,7 @@ namespace utils {
 		size_t count = 0;
 		std::vector<std::vector<double> > retVal(nIn, std::vector<double>(dim, 0.));
 		for (const std::vector<double> & point : inData) {
-			if (isSanePoint(point, fsMasses)) {
+			if (isSanePoint(point, fsMasses) && point[1] <= kin1max) {
 				retVal[count][0] = point[0];
 				retVal[count][1] = point[1];
 				retVal[count][2] = point[2];
@@ -163,6 +180,73 @@ namespace utils {
 		retVal.resize(count);
 		std::cout << "utils::sanitizeDataPoints(...): INFO: " << count << " events of " << nIn << " events are sane" << std::endl;
 
+		return retVal;
+	}
+
+
+	void checkDerivatives(std::shared_ptr<logLikelihoodBase> ll, const std::vector<std::complex<double> > &ampl, double delta, bool doSecond) {
+		std::vector<std::complex<double> > pa = ampl;
+		const double evl = ll->eval(pa);
+		const std::vector<double> Devl = ll->Deval(pa);
+		for (size_t a = 0; a < pa.size(); ++a) {
+			double dd = delta * pow(std::norm(pa[a]),.5);
+			pa[a] += std::complex<double>(dd,0.);
+			std::cout << Devl[2*a  ] << " || " << (ll->eval(pa) - evl)/dd << std::endl;
+			pa[a] += std::complex<double>(-dd,dd);
+			std::cout << Devl[2*a+1] << " || " << (ll->eval(pa) - evl)/dd << std::endl;
+			pa[a] += std::complex<double>(0.,-dd);
+		}
+		if (doSecond) {
+			const std::vector<std::vector<double> > DDevl = ll->DDeval(pa);
+			std::cout << "utils::checkDerivatives(...): INFO: Second derivative gotten. Checking numerically now..." << std::endl;
+			std::vector<double> D;
+			for (size_t a = 0; a < pa.size(); ++a) {
+				double dd = delta * pow(std::norm(pa[a]),.5);
+				pa[a] += std::complex<double>(dd,0.);
+				D = ll->Deval(pa);
+				for (size_t b = 0; b < pa.size(); ++b) {
+					if (a == b) {
+						std::cout << " ! - ! - ! - ! - ! - ! - !" << std::endl;
+					}
+					std::cout << DDevl[2*a  ][2*b  ] << " ++ " << (D[2*b  ] - Devl[2*b  ])/dd << std::endl;
+					std::cout << DDevl[2*a  ][2*b+1] << " ++ " << (D[2*b+1] - Devl[2*b+1])/dd << std::endl;
+					if (a == b) {
+						std::cout << " ! - ! - ! - ! - ! - ! - !" << std::endl;
+					}
+				}
+				pa[a] += std::complex<double>(-dd,dd);
+				D = ll->Deval(pa);
+				for (size_t b = 0; b < pa.size(); ++b) {
+					if (a == b) {
+						std::cout << " ! - ! - ! - ! - ! - ! - !" << std::endl;
+					}
+					std::cout << DDevl[2*a+1][2*b  ] << " ++ " << (D[2*b  ] - Devl[2*b  ])/dd << std::endl;
+					std::cout << DDevl[2*a+1][2*b+1] << " ++ " << (D[2*b+1] - Devl[2*b+1])/dd << std::endl;
+					if (a == b) {
+						std::cout << " ! - ! - ! - ! - ! - ! - !" << std::endl;
+					}
+				}
+				pa[a] += std::complex<double>(0.,-dd);
+			}
+		}
+	}
+
+	std::vector<std::string> splitString(const std::string& inputString, const char& splitChar) {
+		std::vector<std::string> retVal;
+		std::string part = "";
+		for (const char& c : inputString) {
+			if (c == splitChar) {
+				if (part != "") {
+					retVal.push_back(part);
+					part = "";
+				}
+			} else {
+				part += c;
+			}
+		}
+		if (part != "") {
+			retVal.push_back(part);
+		}
 		return retVal;
 	}
 }

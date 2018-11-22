@@ -7,6 +7,7 @@
 #include"massShape.h"
 #include"kinematicSignature.h"
 #include"angularDependence.h"
+#include"efficiencyFunction.h"
 
 class amplitude {
 	public:
@@ -23,6 +24,13 @@ class amplitude {
 	protected:
 		std::shared_ptr<kinematicSignature> _kinSignature;
 		std::string                         _name;
+
+};
+
+class constantAmplitude : public amplitude {
+	public:
+		constantAmplitude(std::shared_ptr<kinematicSignature> kinSignature);
+		std::complex<double> eval(const std::vector<double>& kin) const override;
 
 };
 
@@ -110,7 +118,7 @@ class lookupAmplitudeIntens : public amplitude {
 	public:
 		lookupAmplitudeIntens(std::shared_ptr<kinematicSignature> kinSignature, const std::string& name, double sMinX, double widthX, double sMinY, double widthY, const std::vector<std::vector<double> > & intensities);
 
-		std::complex<double> eval(const std::vector<double>& kin) const override;
+		virtual std::complex<double> eval(const std::vector<double>& kin) const override;
 	protected:
 		size_t _nX;
 		size_t _nY;
@@ -122,5 +130,14 @@ class lookupAmplitudeIntens : public amplitude {
 		double _widthY;
 
 		std::vector<std::vector<double> > _data;
+};
+
+class lookupAmplitudeIntens_efficiency : public lookupAmplitudeIntens {
+	public:
+		lookupAmplitudeIntens_efficiency(std::shared_ptr<efficiencyFunction> efficiency, std::shared_ptr<kinematicSignature> kinSignature, const std::string& name, double sMinX, double widthX, double sMinY, double widthY, const std::vector<std::vector<double> > & intensities);
+
+		virtual std::complex<double> eval(const std::vector<double>& kin) const override;
+	protected:
+		std::shared_ptr<efficiencyFunction> _efficiency;
 };
 #endif//AMPLITUDE__

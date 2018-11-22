@@ -25,6 +25,7 @@ evalType fabiliLL::eval(const std::vector<double>& parameters) const {
 		size_t upperSectorBorder = _amplitudeCoherenceBorders[1];
 		double intens = 0.;
 		std::vector<std::complex<double> > sectorAmpls(_nSect, std::complex<double>(0.,0.));
+		size_t aCount = 0;
 		for (size_t a = 0; a < _nAmpl; ++a) {
 			if (a >= upperSectorBorder) {
 				intens += norm(sectorAmpls[sector]);
@@ -32,44 +33,53 @@ evalType fabiliLL::eval(const std::vector<double>& parameters) const {
 				sector = getSector(a);
 				upperSectorBorder = _amplitudeCoherenceBorders[sector+1];
 			}
-			sectorAmpls[sector] += _points[p][a] * prodAmps[a];
+			sectorAmpls[sector] += _points[p][aCount] * prodAmps[a];
+
+			++aCount;
 		}
 		intens += norm(sectorAmpls[sector]); // Do also for the last sector
 		sectorAmpls[sector]= std::conj(sectorAmpls[sector]);
 		ll -= log(intens);
 
 		size_t sector_i = 0;
-		size_t upperSectorBorder_i = _amplitudeCoherenceBorders[1];		
+		size_t upperSectorBorder_i = _amplitudeCoherenceBorders[1];	
+
+		size_t aiCount = 0;	
 		for (size_t ai : _contributingWaves[p]) {
 			if (ai >= upperSectorBorder_i) {
 				sector_i = getSector(ai);
 				upperSectorBorder_i = _amplitudeCoherenceBorders[sector_i+1];
 			}
-			std::complex<double> factori = _points[p][ai] * sectorAmpls[sector_i]/intens * 2.;
+			std::complex<double> factori = _points[p][aiCount] * sectorAmpls[sector_i]/intens * 2.;
 			Dll[2*ai  ] -= factori.real(); // One factor of -1 since, the NEGATIVE likelihood is used 
 			Dll[2*ai+1] += factori.imag(); // Two factors of -1: Complex i*i = -1 and since the NEGATIVE likelihood is used
 
 			size_t sector_j = 0;
 			size_t upperSectorBorder_j = _amplitudeCoherenceBorders[1];
+
+			size_t ajCount = 0;
 			for (size_t aj : _contributingWaves[p]) {
 				if (aj >= upperSectorBorder_j) {
 					sector_j = getSector(aj);
 					upperSectorBorder_j = _amplitudeCoherenceBorders[sector_j+1];
 				}
 				if (sector_i == sector_j) {
-					std::complex<double> factor = _points[p][ai] * std::conj(_points[p][aj])/intens*2.;
+					std::complex<double> factor = _points[p][aiCount] * std::conj(_points[p][ajCount])/intens*2.;
 					DDll[2*ai  ][2*aj  ] -= factor.real();
 					DDll[2*ai  ][2*aj+1] -= factor.imag();
 					DDll[2*ai+1][2*aj  ] += factor.imag();
 					DDll[2*ai+1][2*aj+1] -= factor.real();
 				}
-				std::complex<double> factorj = -_points[p][aj] * sectorAmpls[sector_j]/intens *2.; // -1/intens and then the same factor;
+				std::complex<double> factorj = -_points[p][ajCount] * sectorAmpls[sector_j]/intens *2.; // -1/intens and then the same factor;
 
 				DDll[2*ai  ][2*aj  ] -= factori.real() * factorj.real();
 				DDll[2*ai  ][2*aj+1] += factori.real() * factorj.imag();
 				DDll[2*ai+1][2*aj  ] += factori.imag() * factorj.real();
 				DDll[2*ai+1][2*aj+1] -= factori.imag() * factorj.imag();
+
+				++ajCount;
 			}
+			++aiCount;
 		}
 	}
 	double integralIntensity      = _integral->totalIntensity(prodAmps, true);

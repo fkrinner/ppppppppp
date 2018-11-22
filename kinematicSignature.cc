@@ -17,7 +17,7 @@ std::vector<std::vector<double> > kinematicSignature::getBoseSymmetrizedKinemati
 		case 1: {std::vector<std::vector<double> > retVal(2); retVal[0] = {kin[0], kin[1], kin[2]}; retVal[1] = {kin[0], kin[2], kin[1]}; return retVal;}
 		case 2: {std::vector<std::vector<double> > retVal(1); retVal[0] = {kin[0], kin[1], kin[2]}; return retVal;}
 	}
-	std::cerr << "kinematicSignature::getBoseSymmetrizedKinematics(): ERROR: Unknown identifier: " << _identifier << ". Retruning empty vector" <<  std::endl;
+	std::cerr << "kinematicSignature::getBoseSymmetrizedKinematics(): ERROR: Unknown identifier: " << _identifier << ". Returning empty vector" <<  std::endl;
 	return std::vector<std::vector<double> >();
 }
 

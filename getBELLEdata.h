@@ -7,6 +7,9 @@ void BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi_massdiffsidebandlar
 void BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi_massdiffsidebandlarge_andElectronCut(std::string infilename, std::string outfilename);
 void BELLE_apply_selection_final_Dstar0ToD0piplus_D0ToKspipi(const std::string inFileName, const std::string outFileName, bool massDiffSideBand = false, bool mDsideBand = false, int mDsbRegion = 0);
 
+void writeTextDataFile(const std::string outFileName, const std::vector<std::vector<double> > dataPoints);
+std::vector<std::vector<double> > readTextDataFile(const std::string inFileName, size_t variablesPerEvent);
+
 std::vector<std::vector<double> > getBELLEevents(std::string inFileName, int SP_sign, bool SIGNSWITCH = true);
 
 void makeDmassBinnedDalitzs(const std::string inFileName, const std::string outFileName, std::vector<std::pair<double, double> > binning, int SP_sign, bool SIGNSWITCH = true, int nBinsX = 100, int nBinsY = 100);

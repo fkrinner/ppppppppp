@@ -1,11 +1,11 @@
-#!/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/Python_ultra/Python-2.7.10/bin/python
+#!/usr/bin/python
 # analyzeBELLE.py
 # Created: 2018-06-20 09:11:19.799418
 # Author: Fabian Krinner
 import os, sys
 import numpy as np
 import numpy.linalg as la
-
+import freeDdecayBinnings as fDdb
 import scipy.optimize
 import ROOT
 
@@ -249,31 +249,25 @@ def main():
 	loadConstants()
 	print mD0, mKs, mPi
 
-	folder   = "./build/"
+	freeString = '111111111'
 
-	prefix = "BELLEfit_"
-#	prefix = "BELLE_sidebands_"
+	resultFolder   = "./build/BELLE_fit_results/"
 
-	seedStr,bestFileName,lls = getBestSeed(folder, prefix = prefix)
-	bestFileName             = folder + bestFileName
-	lls.sort()
 
-	hist = ROOT.TH1D("ll","ll",1000, lls[0], lls[~0])
-	print lls
-	for ll in lls:
-		hist.Fill(ll)
-#	hist.Draw()
-#	raw_input()
+	bestFileName             = resultFolder + "BELLE_fit_111111111_-23163380.140807_1538140262.dat"
 
-	print "best ll:",lls[0]
+	intFolder = "./build/integralFiles/"
 
-	ps_name  = folder + "ps_integral_finer_binning_regular.dat"
-	ac_name  = folder + "ac_integral_finer_binning_regular.dat"
+	ps_name  = intFolder + "ac_integral_model_"+freeString+"_regular.dat"
+	ac_name  = intFolder + "ps_integral_model_"+freeString+"_regular.dat"
 
-	hessianFileName = folder + prefix + "hessian_"+seedStr+".dat"
 
 	result   = readResultFile(bestFileName, cutLast = True)
-	comaInv  = loadComaInv(hessianFileName, cutLast = True)
+
+	nTot = 2*(len(fDdb.binningKpiS) + len(fDdb.binningKpiP) + len(fDdb.binningKpiD) - 3) + (len(fDdb.binningPiPiS) + len(fDdb.binningPiPiP) + len(fDdb.binningPiPiD) -3)
+	result = result[:nTot]
+
+	comaInv = np.identity(2*nTot)
 
 
 	acMatrix = parseMatrixFile(ac_name)
@@ -282,43 +276,8 @@ def main():
 	norm = normalize(psMatrix)
 	applyNorm(acMatrix, norm)
 
-	binningKpiS  = [ 0.63718, 0.67718, 0.71718, 0.75718, 0.79718, 0.83718, 0.87718, 0.91718, 0.95718, 
-	                 0.99718, 1.03718, 1.07718, 1.11718, 1.15718, 1.19718, 1.23718, 1.27718, 1.31718, 
-	                 1.35718, 1.39718, 1.43718, 1.47718, 1.51718, 1.55718, 1.59718, 1.63718, 1.67718, 
-	                 1.71718, 1.75718]
-
-	binningKpiP  = [ 0.63718, 0.67718, 0.71718, 0.75718, 0.79718, 0.80718, 0.81718, 0.82718, 0.83718, 
-	                 0.84718, 0.85718, 0.86718, 0.87718, 0.88718, 0.89718, 0.90718, 0.91718, 0.92718, 
-	                 0.93718, 0.94718, 0.95718, 0.96718, 0.97718, 0.98718, 0.99718, 1.00718, 1.04718, 
-	                 1.08718, 1.12718, 1.16718, 1.20718, 1.24718, 1.28718, 1.32718, 1.36718, 1.40718, 
-	                 1.44718, 1.48718, 1.52718, 1.56718, 1.60718, 1.64718, 1.68718, 1.72718]
-
-	binningKpiD  = [ 0.63718, 0.67718, 0.71718, 0.75718, 0.79718, 0.83718, 0.87718, 0.91718, 0.95718, 
-	                 0.99718, 1.03718, 1.07718, 1.11718, 1.15718, 1.19718, 1.23718, 1.27718, 1.31718, 
-	                 1.35718, 1.37718, 1.39718, 1.41718, 1.43718, 1.45718, 1.47718, 1.49718, 1.51718, 
-	                 1.53718, 1.57718, 1.61718, 1.65718, 1.69718, 1.73718]
-
-	binningPiPiS = [ 0.27914, 0.31914, 0.35914, 0.39914, 0.43914, 0.47914, 0.51914, 0.55914, 0.59914, 
-	                 0.63914, 0.67914, 0.71914, 0.75914, 0.79914, 0.83914, 0.87914, 0.91914, 0.92914, 
-	                 0.93914, 0.94914, 0.95914, 0.96914, 0.97914, 0.98914, 0.99914, 1.00914, 1.01914, 
-	                 1.02914, 1.03914, 1.04914, 1.05914, 1.06914, 1.07914, 1.11914, 1.15914, 1.19914, 
-	                 1.23914, 1.27914, 1.31914, 1.35914, 1.39914]
-#	               , 1.43914, 1.47914, 1.51914, 1.55914, 1.59914, 1.63914, 1.67914, 1.71914, 1.75914]
-
-	binningPiPiP = [ 0.27914, 0.31914, 0.35914, 0.39914, 0.43914, 0.47914, 0.51914, 0.55914, 0.59914, 
-	                 0.63914, 0.67914, 0.69914, 0.71914, 0.73914, 0.75914, 0.77914, 0.79914, 0.81914, 
-	                 0.83914, 0.85914, 0.87914, 0.89914, 0.91914, 0.95914, 0.99914, 1.03914, 1.07914, 
-	                 1.11914, 1.15914, 1.19914, 1.23914, 1.27914, 1.31914, 1.35914, 1.39914]
-#	               , 1.43914, 1.47914, 1.51914, 1.55914, 1.59914, 1.63914, 1.67914, 1.71914, 1.75914]
-
-	binningPiPiD = [ 0.27914, 0.31914, 0.35914, 0.39914, 0.43914, 0.47914, 0.51914, 0.55914, 0.59914, 
-	                 0.63914, 0.67914, 0.71914, 0.75914, 0.79914, 0.83914, 0.87914, 0.91914, 0.95914, 
-	                 0.99914, 1.03914, 1.07914, 1.11914, 1.15914, 1.17914, 1.19914, 1.21914, 1.23914, 
-	                 1.25914, 1.27914, 1.29914, 1.31914, 1.33914, 1.35914, 1.37914 ]
-#	               , 1.39914, 1.43914, 1.47914, 1.51914, 1.55914, 1.59914, 1.63914, 1.67914, 1.71914, 
-#	                 1.75914]
 	binCount  = 0
-	bngs      = [binningKpiS,binningKpiP,binningKpiD,binningKpiS,binningKpiP,binningKpiD,binningPiPiS,binningPiPiP,binningPiPiD]
+	bngs      = [fDdb.binningKpiS,fDdb.binningKpiP,fDdb.binningKpiD,fDdb.binningKpiS,fDdb.binningKpiP,fDdb.binningKpiD,fDdb.binningPiPiS,fDdb.binningPiPiP,fDdb.binningPiPiD]
 	for i in range(len(bngs)):
 		bngs[i] = np.asarray(bngs[i], dtype = np.float64)
 	
@@ -328,23 +287,39 @@ def main():
 		borders.append(borders[-1] + len(bng) - 1)
 
 	zms       = getZeroModes(psMatrix, 0.01)
-	for z,zm in enumerate(zms):
-		with open("./build/zm_"+str(z)+".dat", 'w') as outFile:
-			for v in zm:
-				outFile.write("("+str(v)+",.0)\n")
+	writZeroModes = False
+	if writZeroModes:
+		for z,zm in enumerate(zms):
+			with open("./build/zm_"+str(z)+".dat", 'w') as outFile:
+				for v in zm:
+					outFile.write("("+str(v)+",.0)\n")
 
 	print len(zms), "zero modes found"
 
 	coma      = removeZeroModeFromComa(la.pinv(comaInv), zms, 1.)
 	comaInv   = la.pinv(coma)
 
-	functions = getModel(bngs, borders, norms = norm, conjugateMap = [False, False, False, False, False, False, False, False, False])
+	conjugateMap = [False]*9
+
+	resonanceParams = [1.4405,.8937,1.4256,1.4405,.8937,1.4256,0.98, .77526, 1.2751,0.1926,.0472,.0985,0.1926,.0472,.0985,.1,.1478,.1851]
+
+	functions = getModel(bngs, borders, norms = norm, conjugateMap = conjugateMap, masses = resonanceParams[:9], widths = resonanceParams[9:])
 #	print functions	
+	useMap = [True]*9
+	newFunctions = []
+	for i,f in enumerate(functions):
+		if useMap[i]:
+			newFunctions.append(f)
+	functions = newFunctions
+
 	binRange  = range(borders[~0])
 
-	resonanceParams = [0.824, 0.895, 1.430, 0.824, 0.895,  1.430, 0.980, 0.77526, 1.2755, 0.478, 0.047, 0.109, 0.478, 0.047 , 0.109, 0.110, 0.1491 , 0.1867]
 	laClasse  = chi2(result, zms, resonanceParams, bngs, norm, comaInv)
+	laClasse.conjugateMap = conjugateMap
+#	laClasse.useMap = useMap
 	params = laClasse.getCpls()
+
+	params = [0.]*len(params)
 
 	cpls      = [params[2*z] + 1.j*params[2*z+1] for z in range(len(zms))]
 	fCpls     = [params[2*(len(zms)+f)] + 1.j*params[2*(len(zms)+f)+1] for f in range(len(functions))]
@@ -415,9 +390,9 @@ def main():
 #		hist2_re.Draw("SAME")
 #		hist2_im.Draw("SAME")
 
-#		gr.Draw()
-		hist.Draw()
-		hist2.Draw("SAME")
+		gr.Draw()
+#		hist.Draw()
+#		hist2.Draw("SAME")
 		c1.Update()
 		raw_input()
 		c1.Clear()

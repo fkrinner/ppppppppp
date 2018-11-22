@@ -1,9 +1,24 @@
 #include"modelGenerator.h"
 #include<iostream>
-modelGenerator::modelGenerator(std::shared_ptr<amplitude> model, std::shared_ptr<generator> gen):
-	_maxFail(1000), _failCount(0), _kinSignature(model->kinSignature()), _generator(gen), _model(model) {
-	if (not(*_kinSignature == *(_generator->kinSignature()))) {
-		std::cerr << "modelGenerator::modelGenerator(...): ERROR: Kinematic signatures do not match" << std::endl;
+
+modelGenerator::modelGenerator(std::shared_ptr<amplitude> model, std::shared_ptr<generator> gen, std::shared_ptr<efficiencyFunction> efficiency) : 
+	modelGenerator::modelGenerator(std::vector<std::shared_ptr<amplitude> >(1, model), gen, efficiency) {};
+
+modelGenerator::modelGenerator(std::vector<std::shared_ptr<amplitude> > model, std::shared_ptr<generator> gen, std::shared_ptr<efficiencyFunction> efficiency):
+	_maxFail(1000), _failCount(0), _kinSignature(gen->kinSignature()), _generator(gen), _model(model), _efficiency(efficiency) {
+	if (model.size() == 0) {
+		std::cout << "modelGenerator::modelGenerator(...): ERROR: No amplitude given" << std::endl;
+		throw;
+	}
+	if (not(*_kinSignature == *(_model[0]->kinSignature()))) {
+		std::cout << "modelGenerator::modelGenerator(...): ERROR: Kinematic signatures does not match with generator" << std::endl;
+		throw;
+	}
+	if (_efficiency) {
+		if (not(*_kinSignature == *(_efficiency->kinSignature()))) {
+			std::cout << "modelGenerator::modelGenerator(...): ERROR: Kinematic signatures does not match with efficiency" << std::endl;
+			throw;
+		}
 	}
 }
 
@@ -13,7 +28,10 @@ std::pair<std::pair<size_t, double>, std::vector<std::vector<double > > > modelG
 	std::vector<std::vector<double> > points(nPoints);
 	for (size_t p = 0; p < nPoints; ++p) {
 		std::vector<double> kin = _generator->generate();
-		double intens = _model->intens(kin);
+		double intens = 0;
+		for (const std::shared_ptr<amplitude> ampl: _model) {
+			intens += ampl->intens(kin);
+		}
 		weights[p] = intens;
 		points[p]  = kin;
 		if (intens > maxWeight) {
@@ -45,7 +63,10 @@ std::vector<std::vector<double> > modelGenerator::generateDataPoints(size_t nPoi
 	}
 	while (found < nPoints) {
 		std::vector<double> kin = _generator->generate();
-		double intens = _model->intens(kin);
+		double intens = 0.;
+		for (std::shared_ptr<amplitude> ampl : _model) {
+			intens += ampl->intens(kin);
+		}
 		if (intens > utils::random() * maxWeight) {
 			retVal[found] = kin;
 			++found;
@@ -53,7 +74,7 @@ std::vector<std::vector<double> > modelGenerator::generateDataPoints(size_t nPoi
 		} else {
 			++_failCount;
 			if (_failCount > _maxFail) {
-				std::cerr << "modelGenerator::generateDataPoints(...): Over " << _maxFail << " failed attempts. Aborting." << std::endl;
+				std::cout << "modelGenerator::generateDataPoints(...): Over " << _maxFail << " failed attempts. Aborting." << std::endl;
 				throw;
 			}
 		}
@@ -77,6 +98,12 @@ std::vector<std::vector<double> > modelGenerator::generateDataPoints(size_t nPoi
 
 std::pair<double, std::vector<double> > modelGenerator::getSinglePoint() const { 
 	std::vector<double> kin = _generator->generate();
-	double intens = _model->intens(kin);
+	double intens = 0.;
+	for (std::shared_ptr<amplitude> ampl : _model) {
+		intens += ampl->intens(kin);
+	}
+	if (_efficiency) {
+		intens *= _efficiency->eval(kin);
+	}
 	return std::pair<double, std::vector<double> > (intens, kin);
 }

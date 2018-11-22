@@ -117,6 +117,42 @@ void BELLE_make_sidebands(std::string infilename, std::string outfilename) {
 	file0->Close();
 }
 
+void writeTextDataFile(const std::string outFileName, const std::vector<std::vector<double> > dataPoints) {
+	std::ofstream outFile;
+	outFile.open (outFileName.c_str(), std::ios::out);
+	for (const std::vector<double>& line : dataPoints) {
+		for (const double& d : line) {
+			outFile << d << " ";
+		}
+		outFile << std::endl;
+	}
+	outFile.close();
+}
+
+std::vector<std::vector<double> > readTextDataFile(const std::string inFileName, size_t variablesPerEvent) {
+	std::vector<std::vector<double> > retVal;
+	std::ifstream inFile;
+	inFile.open (inFileName.c_str(), std::ios::in);
+	size_t position = 0;
+	double val = 0.;
+	std::vector<double> line(variablesPerEvent, 0.);
+	while (inFile >> val) {
+		line[position] = val;
+		++position;
+		if (position == variablesPerEvent) {
+			position = 0;
+			retVal.push_back(line);
+			line = std::vector<double> (variablesPerEvent, 0.);
+		}
+	}
+	if (position != 0) {
+		std::cout << "getBELLEdata::readBinaryDataFile(...): ERROR: Could not get full number of events" << std::endl;
+		throw;
+	}
+	inFile.close();
+	return retVal;
+}
+
 std::vector<std::vector<double> > getBELLEevents(std::string inFileName, int SP_sign, bool SIGNSWITCH) {
 	if (SP_sign*SP_sign*SP_sign != SP_sign) {
 		std::cout << " getBELLEevents(...): ERROR: SP_sign (soft pion) can only be 1, -1, or 0 (for positive, negative, or both)" << std::endl;
@@ -154,7 +190,7 @@ std::vector<std::vector<double> > getBELLEevents(std::string inFileName, int SP_
 		}
 		++count;	
 	}
-	std::cout << count << " events have been found for SP_charge of " << SP_sign << std::endl;
+	std::cout << "getBELLEevents(...): INFO: " << count << " events have been found for SP_charge of " << SP_sign << std::endl;
 	file0->Close();
 	retVal.resize(count);
 	return retVal;
