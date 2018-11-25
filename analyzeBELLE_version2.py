@@ -26,6 +26,16 @@ def loadConstants(constantFileName = "./constants.h"):
 			val    = chunks[4].strip()
 			exec "global "+name+";"+name +'='+val
 
+def getBranchFileEnding():
+	inFileName = "./branchFileEnding.h"
+	with open(inFileName,'r') as inFile:
+		for line in inFile.readlines():
+			if line.strip().startswith("//"):
+				continue
+			if "branchFileEnding" in line:
+				return line.split()[~0].replace('"','').replace(';','')
+	raise IOError("Could not load branchFileEnding from '" + inFileName + "'")
+
 class integralClass:
 	def __init__(self, inFileName):
 		if inFileName.split(os.sep)[~0].startswith("ac_"):
@@ -175,9 +185,10 @@ def getFreeMap(inFileName):
 	return retVal
 
 def getIntegralFileNames(inFileName):
+	branchFileEnding = getBranchFileEnding()
 	string = getFreeString(inFileName)
-	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular.dat"
-	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular.dat"
+	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular." + brachFileEnding
+	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular." + branchFileEnding
 	return ps_fileName, ac_fileName
 
 def getHessianFileName(inFileName):
@@ -343,8 +354,9 @@ def getBestFileName(freeMap, resultFolder = "/nfs/freenas/tuph/e18/project/compa
 
 	allLL = []
 
+	bfe = getBranchFileEnding()
 	for fn in os.listdir(resultFolder):
-		if not fn.endswith(".dat"):
+		if not fn.endswith("."+ bfe):
 			continue
 
 		if not freeString in fn:
@@ -529,6 +541,10 @@ def parseCmdLine(argv):
 	return freeMap, freeString
 
 def main():
+	bfe = getBranchFileEnding()
+	print bfe
+	return
+
 	conj     = True
 	makeZM   = False
 	cutFreed = True
@@ -584,7 +600,7 @@ def main():
 
 	if makeZM and cutFreed:
 		for i,zeroMode in enumerate(integral.zms):
-			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + ".dat"
+			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + "." + bfe
 			fullZM = makeFullVector(zeroMode, freeMap, True, True)
 			with open(zeroFileName, 'w') as outFile:
 				for v in fullZM:
@@ -594,7 +610,7 @@ def main():
  # # # Use this after cutFirstSector
 		print len(integral.zms),"::::::::::"
 		for i,zeroMode in enumerate(integral.zms):
-			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + ".dat"
+			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + "." + bfe
 			with open(zeroFileName, 'w') as outFile:
 				for v in zeroMode:
 					outFile.write("("+str(v.real)+','+str(v.imag)+') ')
