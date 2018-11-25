@@ -72,38 +72,38 @@ int main(int argc, char* argv[]) {
 	std::string integral_file_name = "integral_model_" + freeString; 
 
 	std::shared_ptr<integrator> fixed_integral = std::make_shared<integrator>(integral_points, generator, fixed_model, efficiency);
-	if (!fixed_integral->loadIntegrals("./integralFiles/ps_integral_model_000000000_regular.dat","./integralFiles/ac_integral_model_000000000_regular.dat")) {
+	if (!fixed_integral->loadIntegrals("./integralFiles/ps_integral_model_000000000_regular."+branchFileEnding,"./integralFiles/ac_integral_model_000000000_regular."+branchFileEnding)) {
 		std::cout << "Dnine::main(...): ERROR: Could not load fixed model integrals" << std::endl;
 		return 1;
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: './integralFiles/ps_integral_model_000000000_regular.dat' and './integralFiles/ac_integral_model_000000000_regular.dat'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: './integralFiles/ps_integral_model_000000000_regular."<<branchFileEnding<<"' and './integralFiles/ac_integral_model_000000000_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
 
-	if (!integral->loadIntegrals("./integralFiles/ps_"+integral_file_name+"_regular.dat","./integralFiles/ac_"+integral_file_name+"_regular.dat")) {
+	if (!integral->loadIntegrals("./integralFiles/ps_"+integral_file_name+"_regular."+branchFileEnding,"./integralFiles/ac_"+integral_file_name+"_regular."+branchFileEnding)) {
 		if (!integral->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: Model integration failed" << std::endl;
 			return 1;
 		};
-		integral->writeToFile("./integralFiles/ps_"+integral_file_name+".dat", false);
-                integral->writeToFile("./integralFiles/ac_"+integral_file_name+".dat", true);
+		integral->writeToFile("./integralFiles/ps_"+integral_file_name+"."+branchFileEnding, false);
+                integral->writeToFile("./integralFiles/ac_"+integral_file_name+"."+branchFileEnding, true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_file_name+"_regular.dat' and './integralFiles/ac_"+integral_file_name+"_regular.dat'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_file_name+"_regular."<<branchFileEnding<<"' and './integralFiles/ac_"+integral_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
 
 	std::vector<std::shared_ptr<amplitude> > model_cp = get_model(free_map, mD0, mPi, mKs, true);
 	std::shared_ptr<integrator> integral_cp = std::make_shared<integrator>(integral_points, generator, model_cp, efficiency);
 	std::string integral_cp_file_name =  "integral_cp_model_" + freeString; 
 
-	if (!integral_cp->loadIntegrals("./integralFiles/ps_"+integral_cp_file_name+"_regular.dat","./integralFiles/ac_"+integral_cp_file_name+"_regular.dat")) {
+	if (!integral_cp->loadIntegrals("./integralFiles/ps_"+integral_cp_file_name+"_regular."+branchFileEnding,"./integralFiles/ac_"+integral_cp_file_name+"_regular."+branchFileEnding)) {
 		if (!integral_cp->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: CP model integration failed" << std::endl;
 			return 1;
 
 		}
-		integral_cp->writeToFile("./integralFiles/ps_"+integral_cp_file_name+".dat", false);
-		integral_cp->writeToFile("./integralFiles/ac_"+integral_cp_file_name+".dat", true);
+		integral_cp->writeToFile("./integralFiles/ps_"+integral_cp_file_name+"."+branchFileEnding, false);
+		integral_cp->writeToFile("./integralFiles/ac_"+integral_cp_file_name+"."+branchFileEnding, true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_cp_file_name+"_regular.dat' and './integralFiles/ac_"+integral_cp_file_name+"_regular.dat'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_cp_file_name+"_regular."<<branchFileEnding<<"' and './integralFiles/ac_"+integral_cp_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
 
 	std::shared_ptr<amplitude> bg_amplitude = get_bg_amplitude();
@@ -111,16 +111,16 @@ int main(int argc, char* argv[]) {
 
 	std::string integral_bg_file_name = "integral_bg[" + bg_amplitude->name() + "]";
 
-	if (!integral_bg->loadIntegrals("./integralFiles/ps_"+integral_bg_file_name+"_regular.dat","./integralFiles/ac_"+integral_bg_file_name+"_regular.dat")) {
+	if (!integral_bg->loadIntegrals("./integralFiles/ps_"+integral_bg_file_name+"_regular."+branchFileEnding,"./integralFiles/ac_"+integral_bg_file_name+"_regular."+branchFileEnding)) {
 		std::cout << "Dnine::main(...): WARNING: Could not load bg integral. Integrate" << std::endl;
 		if (!integral_bg->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: Background integration failed" << std::endl;
 			return 1;
 		}
-		integral_bg->writeToFile("./integralFiles/ps_"+integral_bg_file_name+".dat",false);
-		integral_bg->writeToFile("./integralFiles/ac_"+integral_bg_file_name+".dat",true);
+		integral_bg->writeToFile("./integralFiles/ps_"+integral_bg_file_name+"."+branchFileEnding,false);
+		integral_bg->writeToFile("./integralFiles/ac_"+integral_bg_file_name+"."+branchFileEnding,true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_bg_file_name+"_regular.dat' and './integralFiles/ac_"+integral_bg_file_name+"_regular.dat'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_bg_file_name+"_regular.' " <<branchFileEnding<< " and './integralFiles/ac_"+integral_bg_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
 
 	const bool signalEvents = true;
@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
 	const double zeroModePriorStrength = 20000.;
 	size_t countZero = 0;
 	while (true) {
-		std::string zeroFileName = "./zeroModeFiles/"+freeString+"_"+std::to_string(countZero)+".dat";
+		std::string zeroFileName = "./zeroModeFiles/"+freeString+"_"+std::to_string(countZero)+"."+branchFileEnding;
 		std::vector<std::complex<double> > zeroMode = utils::readComplexValuesFromTextFile(zeroFileName, true);
 		if (zeroMode.size() == ll->nAmpl()) {
 			if (!ll->addPriorDirection(zeroModePriorStrength,zeroMode)) {
@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	std::string outFileName = "./BELLE_startValues/BELLE_startValues" + freeString;
-	outFileName += "_"+std::to_string(seed)+".dat";
+	outFileName += "_"+std::to_string(seed)+"."+branchFileEnding;
 	std::ofstream outFile;
 	outFile.open(outFileName.c_str());
 	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
 	outFile.close();
 
 	outFileName = "./BELLE_fit_results/BELLE_fit_" + freeString;
-	outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+".dat";
+	outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+"."+branchFileEnding;
 	outFile.open(outFileName.c_str());
 	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 	for (std::complex<double>& amp : bestResult) {
@@ -303,7 +303,7 @@ int main(int argc, char* argv[]) {
 	outFile.close();
 
 	outFileName = "./BELLE_fit_results/worseLikelihoods/corresponding_BELLE_fit_" + freeString;
-	outFileName += "_"+std::to_string(seed)+".dat";
+	outFileName += "_"+std::to_string(seed)+"."+branchFileEnding;
 	outFile.open(outFileName.c_str());
 	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 	for (double ll : allLL) {
@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
 	outFile.close();
 
 	outFileName = "./BELLE_fit_results/fitInfos/BELLE_fit_" + freeString;
-	outFileName += "_"+std::to_string(seed)+".dat";
+	outFileName += "_"+std::to_string(seed)+"."+branchFileEnding;
 	outFile.open(outFileName.c_str());
 	for (int i = 0; i < argc; ++i) {
 		outFile << argv[i] << " " << std::endl;
@@ -325,7 +325,7 @@ int main(int argc, char* argv[]) {
 	if (writeHessians) {
 
 		outFileName = "./BELLE_fit_results/hessians/BELLE_hessian_" + freeString;
-		outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+".dat";
+		outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+"."+branchFileEnding;
 		std::vector<std::vector<double> > hessian = ll->makeFinalHessian(ll->prodAmpsToFullParams(bestResult), ll->logLikelihood::DDeval(bestResult));
 		outFile.open(outFileName.c_str());
 		std::vector<std::pair<size_t,double> > fixedParams = ll->getFixedParameters();

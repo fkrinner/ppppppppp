@@ -28,6 +28,16 @@ def loadConstants(constantFileName = "./constants.h"):
 			val    = chunks[4].strip()
 			exec "global "+name+";"+name +'='+val
 
+def getBranchFileEnding():
+	inFileName = "./branchFileEnding.h"
+	with open(inFileName,'r') as inFile:
+		for line in inFile.readlines():
+			if line.strip().startswith("//"):
+				continue
+			if "branchFileEnding" in line:
+				return line.split()[~0].replace('"','').replace(';','')
+	raise IOError("Could not load branchFileEnding from '" + inFileName + "'")
+
 class integralClass:
 	def __init__(self, inFileName):
 		if inFileName.split(os.sep)[~0].startswith("ac_"):
@@ -345,8 +355,6 @@ def getBestFileName(freeMap, resultFolder = "/nfs/freenas/tuph/e18/project/compa
 		beforeDate = os.path.getctime(hasToBeBeforeFile)
 
 	allLL = []
-
-	bfe = '.' + getBranchFileEnding
 
 	for fn in os.listdir(resultFolder):
 		if not fn.endswith(bfe):
