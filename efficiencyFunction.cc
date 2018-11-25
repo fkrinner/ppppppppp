@@ -4,7 +4,7 @@
 #include<limits>
 #include"constants.h"
 #include"math.h"
-efficiencyFunction::efficiencyFunction() : _kinSignature(std::make_shared<kinematicSignature>(0)) {}
+efficiencyFunction::efficiencyFunction() :_kin1max(std::numeric_limits<double>::infinity()) ,_kinSignature(std::make_shared<kinematicSignature>(0)) {}
 
 double efficiencyFunction::eval(const std::vector<double>& kin) const {
 	(void) kin;
@@ -21,7 +21,7 @@ double threeParticlPerfectEfficiency::eval(const std::vector<double>& kin) const
 	return 1.;
 }
 
-BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency() : _kin1max(std::numeric_limits<double>::infinity())
+BELLE_DtoKpipi_efficiency::BELLE_DtoKpipi_efficiency() 
 {
 	_kinSignature = std::make_shared<kinematicSignature>(2);
 }

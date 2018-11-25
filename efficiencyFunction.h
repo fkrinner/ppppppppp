@@ -12,7 +12,10 @@ class efficiencyFunction {
 		std::shared_ptr<kinematicSignature> kinSignature()         const {return _kinSignature;}
 
 		virtual double eval(const std::vector<double>& kin) const;
+
+		bool setKin1max(double val) {_kin1max = val; return true;}
 	protected:
+		double _kin1max;
 		std::shared_ptr<kinematicSignature> _kinSignature;
 };
 
@@ -30,10 +33,6 @@ class BELLE_DtoKpipi_efficiency : public efficiencyFunction {
 
 		double eval(const std::vector<double>& kin) const override;
 
-		bool setKin1max(double val) {_kin1max = val; return true;}
-
-	private:
-		double _kin1max;
 		
 };
 #endif//EFFICIENCYFUNCTION__
