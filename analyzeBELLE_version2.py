@@ -179,7 +179,7 @@ def getFreeMap(inFileName):
 def getIntegralFileNames(inFileName):
 	branchFileEnding = getBranchFileEnding()
 	string = getFreeString(inFileName)
-	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular." + brachFileEnding
+	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular." + branchFileEnding
 	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular." + branchFileEnding
 	return ps_fileName, ac_fileName
 
@@ -346,9 +346,9 @@ def getBestFileName(freeMap, resultFolder = "/nfs/freenas/tuph/e18/project/compa
 
 	allLL = []
 
-	bfe = getBranchFileEnding()
+	bfn = getBranchFileEnding()
 	for fn in os.listdir(resultFolder):
-		if not fn.endswith("."+ bfe):
+		if not fn.endswith("."+ bfn):
 			continue
 
 		if not freeString in fn:
@@ -587,9 +587,11 @@ def main():
 	integral.makeZMs(0.01)
 	maxEV = np.max(integral.allEVs)
 
+	bfn = getBranchFileEnding()
+
 	if makeZM and cutFreed:
 		for i,zeroMode in enumerate(integral.zms):
-			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + "." + bfe
+			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + "." + bfn
 			fullZM = makeFullVector(zeroMode, freeMap, True, True)
 			with open(zeroFileName, 'w') as outFile:
 				for v in fullZM:
@@ -599,7 +601,7 @@ def main():
  # # # Use this after cutFirstSector
 		print len(integral.zms),"::::::::::"
 		for i,zeroMode in enumerate(integral.zms):
-			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + "." + bfe
+			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + "." + bfn
 			with open(zeroFileName, 'w') as outFile:
 				for v in zeroMode:
 					outFile.write("("+str(v.real)+','+str(v.imag)+') ')
@@ -622,7 +624,7 @@ def main():
 
 	hists.append(getComaHist(bestFn, fixMap = zeroMap, conj = conj))
 
-	with root_open("DdecayResults_"+freeString+".root", "RECREATE"):
+	with root_open("DdecayResults_"+freeString+"_"+bfn+".root", "RECREATE"):
 		for h in hists:
 			h.Write()
 	return

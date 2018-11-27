@@ -286,7 +286,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	std::string outFileName = "./BELLE_startValues/BELLE_startValues" + freeString;
-	outFileName += "_"+std::to_string(seed)+".cut";
+	outFileName += "_"+std::to_string(seed)+"." + branchFileEnding;
 	std::ofstream outFile;
 	outFile.open(outFileName.c_str());
 	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
@@ -297,7 +297,7 @@ int main(int argc, char* argv[]) {
 	outFile.close();
 
 	outFileName = "./BELLE_fit_results/BELLE_fit_" + freeString;
-	outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+".cut";
+	outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+"." + branchFileEnding;
 	outFile.open(outFileName.c_str());
 	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 	for (std::complex<double>& amp : bestResult) {
@@ -306,7 +306,7 @@ int main(int argc, char* argv[]) {
 	outFile.close();
 
 	outFileName = "./BELLE_fit_results/worseLikelihoods/corresponding_BELLE_fit_" + freeString;
-	outFileName += "_"+std::to_string(seed)+".cut";
+	outFileName += "_"+std::to_string(seed)+"." + branchFileEnding;
 	outFile.open(outFileName.c_str());
 	outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 	for (double ll : allLL) {
@@ -315,7 +315,7 @@ int main(int argc, char* argv[]) {
 	outFile.close();
 
 	outFileName = "./BELLE_fit_results/fitInfos/BELLE_fit_" + freeString;
-	outFileName += "_"+std::to_string(seed)+".cut";
+	outFileName += "_"+std::to_string(seed)+"." + branchFileEnding;
 	outFile.open(outFileName.c_str());
 	for (int i = 0; i < argc; ++i) {
 		outFile << argv[i] << " " << std::endl;
@@ -328,7 +328,7 @@ int main(int argc, char* argv[]) {
 	if (writeHessians) {
 
 		outFileName = "./BELLE_fit_results/hessians/BELLE_hessian_" + freeString;
-		outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+".cut";
+		outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+"." + branchFileEnding;
 		std::vector<std::vector<double> > hessian = ll->makeFinalHessian(ll->prodAmpsToFullParams(bestResult), ll->logLikelihood::DDeval(bestResult));
 		outFile.open(outFileName.c_str());
 		std::vector<std::pair<size_t,double> > fixedParams = ll->getFixedParameters();
