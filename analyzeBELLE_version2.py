@@ -14,6 +14,8 @@ from regularize_integral_matrix import parseMatrixFile, isHermitian, regulatrize
 import ROOT
 from rootfabi import root_open
 import datetime
+from getBranchFileEnding import getBranchFileEnding
+
 INF = float('inf')
 
 def loadConstants(constantFileName = "./constants.h"):
@@ -25,16 +27,6 @@ def loadConstants(constantFileName = "./constants.h"):
 			name   = chunks[2]
 			val    = chunks[4].strip()
 			exec "global "+name+";"+name +'='+val
-
-def getBranchFileEnding():
-	inFileName = "./branchFileEnding.h"
-	with open(inFileName,'r') as inFile:
-		for line in inFile.readlines():
-			if line.strip().startswith("//"):
-				continue
-			if "branchFileEnding" in line:
-				return line.split()[~0].replace('"','').replace(';','')
-	raise IOError("Could not load branchFileEnding from '" + inFileName + "'")
 
 class integralClass:
 	def __init__(self, inFileName):
@@ -541,9 +533,6 @@ def parseCmdLine(argv):
 	return freeMap, freeString
 
 def main():
-	bfe = getBranchFileEnding()
-	print bfe
-	return
 
 	conj     = True
 	makeZM   = False
