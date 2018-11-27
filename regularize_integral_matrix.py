@@ -5,6 +5,7 @@
 import os, sys
 import numpy as np
 import numpy.linalg as la
+from getBranchFileEnding import getBranchFileEnding
 
 def isHermitian(matrix, numLim = 1.e-15):
 	dim = len(matrix)
@@ -74,21 +75,22 @@ def regularize(inFileNames, outFileName):
 	writeMatrixFile(outFileName, regulatrizeMatrix(matrix))
 
 def main():
+	bfe = '.' + getBranchFileEnding()
 	if len(sys.argv) == 1:
 		folder = "./build/integralFiles/"
 		for fn in os.listdir(folder):
 			if 'regular' in fn:
 				continue
 			print fn,"<-------------------"
-			if fn.endswith('.dat'):
+			if fn.endswith(bfe):
 				inFileName = folder + fn
 				print inFileName
 #				mm = parseMatrixFile(inFileName)
-				outFileName = inFileName.replace(".dat","_regular.dat")
+				outFileName = inFileName.replace(bfe,"_regular"+bfe)
 				regularize([inFileName], outFileName)
 	else:
 		inFileName = sys.argv[1]
-		outFileName = inFileName.replace(".dat","_regular.dat")
+		outFileName = inFileName.replace(bfe,"_regular"+bfe)
 		regularize([inFileName], outFileName)
 
 if __name__ == "__main__":

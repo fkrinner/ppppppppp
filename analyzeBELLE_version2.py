@@ -14,6 +14,8 @@ from regularize_integral_matrix import parseMatrixFile, isHermitian, regulatrize
 import ROOT
 from rootfabi import root_open
 import datetime
+from getBranchFileEnding import getBranchFileEnding
+
 INF = float('inf')
 
 def loadConstants(constantFileName = "./constants.h"):
@@ -175,9 +177,10 @@ def getFreeMap(inFileName):
 	return retVal
 
 def getIntegralFileNames(inFileName):
+	bfe = '.' + getBranchFileEnding
 	string = getFreeString(inFileName)
-	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular.dat"
-	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular.dat"
+	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular" + bfe
+	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular" + bfe
 	return ps_fileName, ac_fileName
 
 def getHessianFileName(inFileName):
@@ -343,8 +346,10 @@ def getBestFileName(freeMap, resultFolder = "/nfs/freenas/tuph/e18/project/compa
 
 	allLL = []
 
+	bfe = '.' + getBranchFileEnding
+
 	for fn in os.listdir(resultFolder):
-		if not fn.endswith(".dat"):
+		if not fn.endswith(bfe):
 			continue
 
 		if not freeString in fn:
@@ -529,6 +534,8 @@ def parseCmdLine(argv):
 	return freeMap, freeString
 
 def main():
+	bfe = '.' + getBranchFileEnding
+
 	conj     = True
 	makeZM   = False
 	cutFreed = True
@@ -540,10 +547,10 @@ def main():
 
 #	bestFn  = getStartFileName(getBestFileName(freeMap))
 
-	firstFileWithoutPrior = "./build/BELLE_fit_results/BELLE_fit_111111111_-16956062.253189_1541618747.dat"
-	lastFilrWithoutPrior  = "./build/BELLE_fit_results/BELLE_fit_111111111_-20638751.029967_1541673946.dat"
+	firstFileWithoutPrior = "./build/BELLE_fit_results/BELLE_fit_111111111_-16956062.253189_1541618747" + bfe
+	lastFilrWithoutPrior  = "./build/BELLE_fit_results/BELLE_fit_111111111_-20638751.029967_1541673946" + bfe
 
-	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896.dat"
+	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896" + bfe
 
 #	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap)
 	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap, hasToBeAfterFile = dataMarkerFile)
@@ -584,7 +591,7 @@ def main():
 
 	if makeZM and cutFreed:
 		for i,zeroMode in enumerate(integral.zms):
-			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + ".dat"
+			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + bfe
 			fullZM = makeFullVector(zeroMode, freeMap, True, True)
 			with open(zeroFileName, 'w') as outFile:
 				for v in fullZM:
@@ -594,7 +601,7 @@ def main():
  # # # Use this after cutFirstSector
 		print len(integral.zms),"::::::::::"
 		for i,zeroMode in enumerate(integral.zms):
-			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + ".dat"
+			zeroFileName = "./build/zeroModeFiles/"+freeString+"_"+str(i) + bfe
 			with open(zeroFileName, 'w') as outFile:
 				for v in zeroMode:
 					outFile.write("("+str(v.real)+','+str(v.imag)+') ')
