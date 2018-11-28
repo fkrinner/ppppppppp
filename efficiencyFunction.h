@@ -25,9 +25,20 @@ class threeParticlPerfectEfficiency : public efficiencyFunction {
 };
 
 class BELLE_DtoKpipi_efficiency : public efficiencyFunction {
-	public: // Kineamtic variable are {m_D^2, m_{Kpi(RS}^2, m_{pipi}^2}
+	public: // Kineamtic variable are {m_D^2, m_{Kpi(RS)}^2, m_{pipi}^2}
 		BELLE_DtoKpipi_efficiency ();
 
 		double eval(const std::vector<double>& kin) const override;
+};
+
+class BELLE_DtoKpipi_efficiency_CP : public efficiencyFunction {
+	public:
+		BELLE_DtoKpipi_efficiency_CP(const std::vector<double>& fs_masses);
+
+		double eval(const std::vector<double>& kin) const override;
+
+	protected:
+		double _fs_masses_square_sum;
+
 };
 #endif//EFFICIENCYFUNCTION__
