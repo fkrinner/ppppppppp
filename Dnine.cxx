@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 	const size_t integral_points = 6000*10*10*10*10; // Merged two 30000000 integrals for the model // Comment for ease bugfix
 	const std::vector<double> fs_masses = {mPi, mKs, mPi};
 	std::shared_ptr<threeParticleMassGenerator> generator = std::make_shared<threeParticleMassGenerator>(mD0, fs_masses, std::make_shared<kinematicSignature>(2));
-	std::shared_ptr<efficiencyFunction> efficiency        = std::make_shared<BELLE_DtoKpipi_efficiency>();
+	std::shared_ptr<efficiencyFunction> efficiency        = std::make_shared<BELLE_DtoKpipi_efficiency_CP>(fs_masses);
 
 	std::vector<std::shared_ptr<amplitude> > model       = get_model(free_map, mD0, mPi, mKs);
 	std::vector<std::shared_ptr<amplitude> > fixed_model = get_model({false, false, false, false, false, false, false, false, false}, mD0, mPi, mKs);
