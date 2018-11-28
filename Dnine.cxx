@@ -73,8 +73,13 @@ int main(int argc, char* argv[]) {
 
 	std::shared_ptr<integrator> fixed_integral = std::make_shared<integrator>(integral_points, generator, fixed_model, efficiency);
 	if (!fixed_integral->loadIntegrals("./integralFiles/ps_integral_model_000000000_regular."+branchFileEnding,"./integralFiles/ac_integral_model_000000000_regular."+branchFileEnding)) {
-		std::cout << "Dnine::main(...): ERROR: Could not load fixed model integrals" << std::endl;
-		return 1;
+		if (!fixed_integral->integrate()) {
+			if (!fixed_integral->integrate()) {
+			std::cout << "Dnine::main(...): ERROR: Fixed model integration failed" << std::endl;
+			return 1;
+		}
+		fixed_integral->writeToFile("./integralFiles/ps_integral_model_000000000_regular."+branchFileEnding, false);
+		fixed_integral->writeToFile("./integralFiles/ac_integral_model_000000000_regular."+branchFileEnding, true);
 	} else {
 		std::cout << "Dnine::main(...): INFO: Loaded: './integralFiles/ps_integral_model_000000000_regular."<<branchFileEnding<<"' and './integralFiles/ac_integral_model_000000000_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
