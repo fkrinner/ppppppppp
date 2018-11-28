@@ -110,8 +110,8 @@ class integralClass:
 			print "integralClass.norm(): WARNING: Already normed... no nothing"
 			return
 		normmatrix = np.diag(self.norm)
-		self.acMatrix = regulatrizeMatrix(np.dot(normmatrix, np.dot(self.acMatrix, normmatrix)))
-		self.psMatrix = regulatrizeMatrix(np.dot(normmatrix, np.dot(self.psMatrix, normmatrix)))
+		self.acMatrix = regulatrizeMatrix(np.dot(normmatrix, np.dot(self.acMatrix, normmatrix)), silent = True)
+		self.psMatrix = regulatrizeMatrix(np.dot(normmatrix, np.dot(self.psMatrix, normmatrix)), silent = True)
 
 def getABC(ampls, zms, comaInv, binRange = None):
 	if binRange is None:
@@ -326,7 +326,12 @@ def getInfoFileName(resultFileName):
 	fileName = "_".join(chunks)
 	return "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results/fitInfos/" + fileName
 
-def getBestFileName(freeMap, resultFolder = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results", zeroMap = None, hasToBeAfterFile = None, hasToBeBeforeFile = None):
+def getBestFileName(freeMap, 
+	            resultFolder      = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results", 
+	            zeroMap           = None, 
+	            hasToBeAfterFile  = None, 
+	            hasToBeBeforeFile = None, 
+	            hasInfo           = []):
 	freeString = ''
 	for f in freeMap:
 		if f:
@@ -367,7 +372,15 @@ def getBestFileName(freeMap, resultFolder = "/nfs/freenas/tuph/e18/project/compa
 			print "Found '" + infoFileName + "'"
 		else:
 			continue
-
+		with open(infoFileName, 'r') as inFile:
+			fitInfo = [str(line.strip()) for line in inFile.readlines()]
+		allInfo = True
+		for info in hasInfo:
+			if not info in fitInfo:
+				allInfo = False
+				break
+		if not allInfo:
+			continue
 		if zeroMap is not None:
 			try:
 				if not hasZeroWaves(resultFolder + os.sep + fn, zeroMap, freeMap):
@@ -483,7 +496,6 @@ def makeZeroModeHists(sectorNames, zeroMode, eigenvalue,  binnings, nZero, minAm
 	eigen    = ROOT.TH1D("eigen"+str(nZero)+"_0", name, 50, .5, 2.5)
 	count    = 0
 	totCount = 0
-	print "<---",eigenvalue
 	eigen.SetBinContent(nBin+1, eigenvalue)
 	for i,B in enumerate(binnings):
 		if parts[i] >= minAmount:
@@ -555,15 +567,16 @@ def main():
 	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896.dat"
 
 #	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap)
-	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap, hasToBeAfterFile = dataMarkerFile)
+	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap, hasToBeAfterFile = dataMarkerFile, hasInfo = ["-copy","-prior"])
 
 	allLL.sort()
 	for i in range(10):
-		print allLL[i]
+		print "bestLikelihoods",allLL[i]
 	print bestFn
 
 	print "-----------------------------"
 	print "best result file: '"+bestFn+"'"
+	print "info file is: '"+getInfoFileName(bestFn)+"'"
 	print "created:",datetime.datetime.fromtimestamp(os.path.getctime(bestFn))
 	print "-----------------------------"
 
