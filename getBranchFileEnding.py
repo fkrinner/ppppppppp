@@ -5,7 +5,7 @@
 import os, sys
 
 def getBranchFileEnding():
-	inFileName = "./branchFileEnding.h"
+	inFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/branchFileEnding.h"
 	with open(inFileName,'r') as inFile:
 		for line in inFile.readlines():
 			if line.strip().startswith("//"):
