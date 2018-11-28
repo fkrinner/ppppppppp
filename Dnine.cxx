@@ -75,8 +75,9 @@ int main(int argc, char* argv[]) {
 	if (!fixed_integral->loadIntegrals("./integralFiles/ps_integral_model_000000000_regular."+branchFileEnding,"./integralFiles/ac_integral_model_000000000_regular."+branchFileEnding)) {
 		if (!fixed_integral->integrate()) {
 			if (!fixed_integral->integrate()) {
-			std::cout << "Dnine::main(...): ERROR: Fixed model integration failed" << std::endl;
-			return 1;
+				std::cout << "Dnine::main(...): ERROR: Fixed model integration failed" << std::endl;
+				return 1;
+			}
 		}
 		fixed_integral->writeToFile("./integralFiles/ps_integral_model_000000000_regular."+branchFileEnding, false);
 		fixed_integral->writeToFile("./integralFiles/ac_integral_model_000000000_regular."+branchFileEnding, true);
