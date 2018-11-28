@@ -534,12 +534,16 @@ def parseCmdLine(argv):
 
 def main():
 
-	conj     = True
+	conj     = False
 	makeZM   = False
 	cutFreed = True
 	loadConstants()
 	print mD0, mKs, mPi
 	freeMap, freeString = parseCmdLine(sys.argv)
+
+	if "-conj" in sys.argv:
+		print "Conjugate the fit result"
+		conj = True
 
 	zeroMap = [False, False,False, False, False, False, False, False, False]
 
