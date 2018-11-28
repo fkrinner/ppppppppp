@@ -47,14 +47,15 @@ def writeMatrixFile(outFileName, matrix):
 				outFile.write(toString(matrix[i,j])+' ')
 			outFile.write('\n')
 
-def regulatrizeMatrix(matrix):
+def regulatrizeMatrix(matrix, silent = False):
 	iterCount = 0
 	while True:
 		val, vec = la.eig(matrix)
 		indices = []
 		for i,v in enumerate(val):
 			if v.real < 0.:
-				print v," !!!"
+				if not silent:
+					print v," !!!"
 				indices.append(i)
 		if len(indices) == 0:
 			break
@@ -63,7 +64,8 @@ def regulatrizeMatrix(matrix):
 				for k in range(len(val)):
 					matrix[j,k] -= 2*val[i]*vec[j,i]*vec[k,i]
 		iterCount += 1
-		print "interation",iterCount
+		if not silent:
+			print "interation",iterCount
 		for i in range(len(matrix)):
 			matrix[i,i] = matrix[i,i].real
 	return matrix
