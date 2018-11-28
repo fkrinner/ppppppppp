@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 
 	{
 		std::string integral_file_name = "integral_model_" + freeString;
-		if (integral->loadIntegrals("./integralFiles/ps_"+integral_file_name+"_regular.dat","./integralFiles/ac_"+integral_file_name+"_regular.dat")) {
+		if (integral->loadIntegrals("./integralFiles/ps_"+integral_file_name+"_regular." + branchFileEnding,"./integralFiles/ac_"+integral_file_name+"_regular." + branchFileEnding)) {
 			std::cout << "DostDrocess::main(...): INFO: Integral loaded" << std::endl;
 		} else {
 			std::cout << "DostDrocess::main(...): ERROR: Could not load integral" << std::endl;
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		std::string integral_cp_file_name =  "integral_cp_model_" + freeString;
-		if (integral_cp->loadIntegrals("./integralFiles/ps_"+integral_cp_file_name+"_regular.dat","./integralFiles/ac_"+integral_cp_file_name+"_regular.dat")) {
+		if (integral_cp->loadIntegrals("./integralFiles/ps_"+integral_cp_file_name+"_regular." + branchFileEnding,"./integralFiles/ac_"+integral_cp_file_name+"_regular." + branchFileEnding)) {
 			std::cout << "DostDrocess::main(...): INFO: CP integral loaded" << std::endl;
 		} else {
 			std::cout << "DostDrocess::main(...): ERROR: Could not load CP integral" << std::endl;
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		std::string integral_bg_file_name = "integral_bg[" + bg_amplitude->name() + "]";
-		if (integral_bg->loadIntegrals("./integralFiles/ps_"+integral_bg_file_name+"_regular.dat","./integralFiles/ac_"+integral_bg_file_name+"_regular.dat")) {
+		if (integral_bg->loadIntegrals("./integralFiles/ps_"+integral_bg_file_name+"_regular." + branchFileEnding,"./integralFiles/ac_"+integral_bg_file_name+"_regular." + branchFileEnding)) {
 			std::cout << "DostDrocess::main(...): INFO: BG integral loaded" << std::endl;
 		} else {
 			std::cout << "DostDrocess::main(...): ERROR: Could not load BG integral" << std::endl;
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "DostDrocess::main(...): INFO: Likelihood eval: " << evalLL << " difference to input is: " << inputLL-evalLL << std::endl;
 
 	std::shared_ptr<efficiencyFunction> unitEfficiency = std::make_shared<threeParticlPerfectEfficiency>(std::make_shared<kinematicSignature>(2));
-	std::string outFileNameDalitz = "dalitzPlotResults_"+freeString	+".root";
+	std::string outFileNameDalitz = "dalitzPlotResults_"+freeString + "_" + branchFileEnding +".root";
 	std::pair<bool, std::vector<double> > norms_ac = integral->getNormalizations(true);
 	std::pair<bool, std::vector<double> > norms    = integral->getNormalizations(false);
 	if (!norms.first or !norms_ac.first) {
