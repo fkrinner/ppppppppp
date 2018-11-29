@@ -65,12 +65,12 @@ int main(int argc, char* argv[]) {
 	std::shared_ptr<efficiencyFunction> efficiency        = std::make_shared<BELLE_DtoKpipi_efficiency_CP>(fs_masses);
 
 	std::vector<std::shared_ptr<amplitude> > model       = get_model(free_map, mD0, mPi, mKs);
-	std::vector<std::shared_ptr<amplitude> > fixed_model = get_model({false, false, false, false, false, false, false, false, false}, mD0, mPi, mKs);
+//	std::vector<std::shared_ptr<amplitude> > fixed_model = get_model({false, false, false, false, false, false, false, false, false}, mD0, mPi, mKs);
 	const size_t n_model = model.size();
 
 	std::shared_ptr<integrator> integral = std::make_shared<integrator>(integral_points, generator, model, efficiency);
 	std::string integral_file_name = "integral_model_" + freeString; 
-
+/*
 	std::shared_ptr<integrator> fixed_integral = std::make_shared<integrator>(integral_points, generator, fixed_model, efficiency);
 	if (!fixed_integral->loadIntegrals("./integralFiles/ps_integral_model_000000000_regular."+branchFileEnding,"./integralFiles/ac_integral_model_000000000_regular."+branchFileEnding)) {
 		if (!fixed_integral->integrate()) {
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		std::cout << "Dnine::main(...): INFO: Loaded: './integralFiles/ps_integral_model_000000000_regular."<<branchFileEnding<<"' and './integralFiles/ac_integral_model_000000000_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
-
+*/
 	if (!integral->loadIntegrals("./integralFiles/ps_"+integral_file_name+"_regular."+branchFileEnding,"./integralFiles/ac_"+integral_file_name+"_regular."+branchFileEnding)) {
 		if (!integral->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: Model integration failed" << std::endl;
