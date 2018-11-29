@@ -59,7 +59,7 @@ class integralClass:
 		self.freeMap  = getFreeMap(self.psFileName)
 		self.fixMap   = None
 		norm          = []
-		for i in range(self.dim):
+		for i in xrange(self.dim):
 			nn = self.psMatrix[i,i]
 			if nn == 0.:
 				nn = 0.
@@ -76,7 +76,7 @@ class integralClass:
 		self.norm = np.asarray(cutFree(self.norm, self.freeMap, fixMap = self.fixMap))
 		acMatrix  = []
 		psMatrix  = []
-		for i in range(self.dim):
+		for i in xrange(self.dim):
 			psMatrix.append(cutFree(self.psMatrix[i], self.freeMap, fixMap = self.fixMap))
 			acMatrix.append(cutFree(self.acMatrix[i], self.freeMap, fixMap = self.fixMap))
 		self.acMatrix = np.asarray(cutFree(acMatrix, self.freeMap, fixMap = self.fixMap), dtype = complex)
@@ -86,7 +86,7 @@ class integralClass:
 
 	def cutFirstSector(self):
 		nWaves = 0
-		for i in range(9):
+		for i in xrange(9):
 			if self.freeMap[i]:
 				nWaves += freeNwaves[i]
 			else:
@@ -125,17 +125,17 @@ class integralClass:
 
 def getABC(ampls, zms, comaInv, binRange = None):
 	if binRange is None:
-		binRange = range(len(ampls))
+		binRange = xrange(len(ampls))
 	dim      = 2*len(ampls)
 	ncf      = 2*len(zms)
 	linAmpls = np.zeros((dim))
 	linZms   = np.zeros((dim, ncf))
-	for i in range(dim/2):
+	for i in xrange(dim/2):
 		if not i in binRange:
 			continue
 		linAmpls[2*i  ] = ampls[i].real
 		linAmpls[2*i+1] = ampls[i].imag
-		for j in range(ncf/2):
+		for j in xrange(ncf/2):
 			linZms[2*i  ,2*j  ] = zms[j][i].real
 			linZms[2*i  ,2*j+1] =-zms[j][i].imag
 			linZms[2*i+1,2*j  ] = zms[j][i].imag
@@ -148,7 +148,7 @@ def getABC(ampls, zms, comaInv, binRange = None):
 
 def getNwaves(freeMap):
 	retVal = []
-	for i in range(9):
+	for i in xrange(9):
 		if freeMap[i]:
 			retVal.append(freeNwaves[i])
 		else:
@@ -242,13 +242,13 @@ def getComaHist(resultFileName, fixMap, conj = False):
 				dim += freeNwaves[i]
 		dim *= 2 # re and im
 		coma = np.zeros(dim)
-		COMA = [[0.]*dim for _ in range(dim)]
-		for i in range(dim):
+		COMA = [[0.]*dim for _ in xrange(dim)]
+		for i in xrange(dim):
 			COMA[i][i] = 1.
 
 	hist = ROOT.TH2D('COMA_0_'+str(nBin),'COMA_0_'+str(nBin),len(COMA), 0.,1., len(COMA), 0.,1.)
-	for i in range(len(coma)):
-		for j in range(len(coma)):
+	for i in xrange(len(coma)):
+		for j in xrange(len(coma)):
 			fakk = 1.
 			if conj:
 				fakk = (-1)**(i+j)
@@ -276,14 +276,14 @@ def parseResultFile(inFileName, conj = False):
 def cutFree(arr, freeMap, fixMap, mult = 1):
 	count  = 0
 	retVal = []
-	for i in range(9):
+	for i in xrange(9):
 		if fixMap is not None:
 			if fixMap[i]:
 				count += freeNwaves[i]
 				continue
 		if freeMap[i]:
-			for b in range(freeNwaves[i]):
-				for mm in range(mult):
+			for b in xrange(freeNwaves[i]):
+				for mm in xrange(mult):
 					retVal.append(arr[mult*count+mm])
 				count += 1
 		else:
@@ -293,17 +293,17 @@ def cutFree(arr, freeMap, fixMap, mult = 1):
 def makeFullVector(cutVector, freeMap, double = True, addBG = True):
 	fullVector = []
 	count = 0
-	for i in range(9):
+	for i in xrange(9):
 		if freeMap[i]:
-			for _ in range(freeNwaves[i]):
+			for _ in xrange(freeNwaves[i]):
 				fullVector.append(cutVector[count])
 				count += 1
 		else:
-			for _ in range(fixedNwaves[i]):
+			for _ in xrange(fixedNwaves[i]):
 				fullVector.append(0.)
 	if double:
 		nn = len(fullVector)
-		for i in range(nn):
+		for i in xrange(nn):
 			fullVector.append(0.)
 	if addBG:
 		fullVector.append(0.)
@@ -415,12 +415,12 @@ def hasZeroWaves(fn, zeroMap, freeMap = None):
 		freeMap = getFreeMap(fn)
 	ampls = parseResultFile(fn)
 	count = 0
-	for w in range(9):
+	for w in xrange(9):
 		if freeMap[w]:
 			N = freeNwaves[w]
 		else:
 			N = fixedNwaves[w]
-		for n in range(N):
+		for n in xrange(N):
 			if not ampls[count] == 0.+0.j:
 				if zeroMap[w]:
 					return False
@@ -429,7 +429,7 @@ def hasZeroWaves(fn, zeroMap, freeMap = None):
 
 def getBinnings(freeMap, fixMap):
 	retVal = []
-	for i in range(9):
+	for i in xrange(9):
 		if fixMap is not None:
 			if fixMap[i]:
 				continue
@@ -440,7 +440,7 @@ def getBinnings(freeMap, fixMap):
 def getSectorNames(freeMap = [True]*9, fixMap = None):
 	fullNames = ["KpiSright","KpiPright", "KpiDright", "KpiSwrong","KpiPwrong","KpiDwrong", "piPiS","piPiP","piPiD"]
 	retVal    = []
-	for i in range(9):
+	for i in xrange(9):
 		if fixMap is not None:
 			if fixMap[i]:
 				continue
@@ -479,7 +479,7 @@ def getSingleWaveHists(sectorName, binning, startIndex, prodAmps, norms):
 	nrm  = ROOT.TH2D(sectorName + "_0_norm",sectorName + "_0_norm", 50, .5, 2.5, len(binning)-1, npBinning)
 	indx = ROOT.TH2D(sectorName + "_0_index",sectorName + "_0_index", 50, .5, 2.5, len(binning)-1, npBinning)
 	nBin = int((mD0-.5)/.04)
-	for i in range(len(binning)-1):
+	for i in xrange(len(binning)-1):
 		I.SetBinContent(   nBin+1, i+1, abs(prodAmps[startIndex + i])**2)
 		re.SetBinContent(  nBin+1, i+1, prodAmps[startIndex + i].real)
 		im.SetBinContent(  nBin+1, i+1, prodAmps[startIndex + i].imag)
@@ -492,7 +492,7 @@ def makeZeroModeHists(sectorNames, zeroMode, eigenvalue,  binnings, nZero, minAm
 	parts = [0.]*len(binnings)
 	count = 0
 	for b,B in enumerate(binnings):
-		for i in range(len(B)-1):
+		for i in xrange(len(B)-1):
 			parts[b] += zeroMode[count]**2
 			count += 1
 		parts[b] **= .5
@@ -513,19 +513,29 @@ def makeZeroModeHists(sectorNames, zeroMode, eigenvalue,  binnings, nZero, minAm
 	eigen.SetBinContent(nBin+1, eigenvalue)
 	for i,B in enumerate(binnings):
 		if parts[i] >= minAmount:
-			for b in range(len(B)-1):
+			for b in xrange(len(B)-1):
 				hist.SetBinContent(nBin+1, count+1, zeroMode[totCount])
 				count    += 1
 				totCount += 1
 		else:
 			totCount += len(B) - 1
 	scale = 0.
-	for b in range(nBins):
+	for b in xrange(nBins):
 		scale += hist.GetBinContent(nBin + 1, b+1)**2
 	hist.Scale(1./scale**.5)
 	return hist, eigen
 
-def parseCmdLine(argv):
+def parseCmdLine(args, additionalOptions = []):
+	argv = []
+	for a in args:
+		append = True
+		for opt in additionalOptions:
+			if a.startswith(opt):
+				append = False
+				break
+		if append:
+			argv.append(a)
+
 	if len(argv) == 2 and len(argv[1]) > 1:
 		freeString = argv[1]
 		if not len(freeString) == 9:
@@ -540,7 +550,7 @@ def parseCmdLine(argv):
 				raise RuntimeError("Invalid cahracter in freeString '" + c + "'")
 	elif len(argv) > 1:
 		freeMap = [False]*9
-		for i in range(1,len(argv)):
+		for i in xrange(1,len(argv)):
 			n = int(argv[i])
 			if n < 0 or n > 8:
 				raise RuntimeError("Invalid wave number '" + argv[i] + "'")
@@ -561,27 +571,30 @@ def parseCmdLine(argv):
 def main():
 	bfe = '.' + getBranchFileEnding()
 
-	conj     = True
+	conj     = False
+	if "-conj" in sys.argv:
+		conj = True
+
 	makeZM   = False
 	cutFreed = True
 	loadConstants()
 	print mD0, mKs, mPi
-	freeMap, freeString = parseCmdLine(sys.argv)
+	freeMap, freeString = parseCmdLine(sys.argv, additionalOptions = ["-conj"])
 
 	zeroMap = [False, False,False, False, False, False, False, False, False]
 
 #	bestFn  = getStartFileName(getBestFileName(freeMap))
 
-	firstFileWithoutPrior = "./build/BELLE_fit_results/BELLE_fit_111111111_-16956062.253189_1541618747.dat"
-	lastFilrWithoutPrior  = "./build/BELLE_fit_results/BELLE_fit_111111111_-20638751.029967_1541673946.dat"
+#	firstFileWithoutPrior = "./build/BELLE_fit_results/BELLE_fit_111111111_-16956062.253189_1541618747.dat"
+#	lastFileWithoutPrior  = "./build/BELLE_fit_results/BELLE_fit_111111111_-20638751.029967_1541673946.dat"
 
-	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896.dat"
+#	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896.dat"
 
 	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap)
 #	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap, hasToBeAfterFile = dataMarkerFile)
 
 	allLL.sort()
-#	for i in range(10):
+#	for i in xrange(10):
 #		print "bestLikelihoods",allLL[i]
 	print bestFn
 
@@ -603,7 +616,7 @@ def main():
 	prodAmps = cutFree(prodAmps, freeMap, fixMap = zeroMap)
 	binnings = getBinnings(freeMap, fixMap = zeroMap)
 
-	norms    = [integral.psMatrix[i,i].real for i in range(len(prodAmps))]
+	norms    = [integral.psMatrix[i,i].real for i in xrange(len(prodAmps))]
 
 	integral.normalize()
 
@@ -657,9 +670,9 @@ def main():
 
 	c1 = ROOT.TCanvas()
 	hist = ROOT.TH1D("h","h",len(integral.zms[0]),0.,1.)
-	for i in range(len(integral.zms)):
+	for i in xrange(len(integral.zms)):
 		print len(integral.zms[i])
-		for j in range(len(integral.zms[i])):
+		for j in xrange(len(integral.zms[i])):
 			hist.SetBinContent(j+1, integral.zms[i,j])
 		hist.Draw()
 		c1.Update()

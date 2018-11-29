@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 	const size_t integral_points = 6000*10*10*10*10; // Merged two 30000000 integrals for the model // Comment for ease bugfix
 	const std::vector<double> fs_masses = {mPi, mKs, mPi};
 	std::shared_ptr<threeParticleMassGenerator> generator = std::make_shared<threeParticleMassGenerator>(mD0, fs_masses, std::make_shared<kinematicSignature>(2));
-	std::shared_ptr<efficiencyFunction> efficiency        = std::make_shared<BELLE_DtoKpipi_efficiency>();
+	std::shared_ptr<efficiencyFunction> efficiency        = std::make_shared<BELLE_DtoKpipi_efficiency_CP>(fs_masses);
 
 	std::vector<std::shared_ptr<amplitude> > model       = get_model(free_map, mD0, mPi, mKs);
 //	std::vector<std::shared_ptr<amplitude> > fixed_model = get_model({false, false, false, false, false, false, false, false, false}, mD0, mPi, mKs);
@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Dnine::main(...): INFO: Start fitting" << std::endl;
 
 // HERE ARE THE NFITS // // // // // // // // // // // // // // // // // // // /
-	const size_t nFits = 1;
+	const size_t nFits = 10;
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
 	double bestLL = std::numeric_limits<double>::infinity();
@@ -328,49 +328,46 @@ int main(int argc, char* argv[]) {
 
 //#define WRITE_HESSIANS
 #ifdef WRITE_HESSIANS
-	if (writeHessians) {
-
-		outFileName = "./BELLE_fit_results/hessians/BELLE_hessian_" + freeString;
-		outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+"."+branchFileEnding;
-		std::vector<std::vector<double> > hessian = ll->makeFinalHessian(ll->prodAmpsToFullParams(bestResult), ll->logLikelihood::DDeval(bestResult));
-		outFile.open(outFileName.c_str());
-		std::vector<std::pair<size_t,double> > fixedParams = ll->getFixedParameters();
-		const size_t dim = hessian.size() + fixedParams.size();
-		size_t countI = 0;
-		for (size_t i = 0; i < dim; ++i) {
-			bool iIsFixed = false;
+	outFileName = "./BELLE_fit_results/hessians/BELLE_hessian_" + freeString;
+	outFileName += "_"+std::to_string(bestLL)+"_"+std::to_string(seed)+"."+branchFileEnding;
+	std::vector<std::vector<double> > hessian = ll->makeFinalHessian(ll->prodAmpsToFullParams(bestResult), ll->logLikelihood::DDeval(bestResult));
+	outFile.open(outFileName.c_str());
+	std::vector<std::pair<size_t,double> > fixedParams = ll->getFixedParameters();
+	const size_t dim = hessian.size() + fixedParams.size();
+	size_t countI = 0;
+	for (size_t i = 0; i < dim; ++i) {
+		bool iIsFixed = false;
+		for (std::pair<size_t,double> fix: fixedParams) {
+			if (i == fix.first) {
+				iIsFixed = true;
+				break;
+			}
+		}
+		size_t countJ = 0;
+		for (size_t j = 0; j < dim; ++j) {
+			bool jIsFixed = false;
 			for (std::pair<size_t,double> fix: fixedParams) {
-				if (i == fix.first) {
-					iIsFixed = true;
+				if (j == fix.first) {
+					jIsFixed = true;
 					break;
 				}
 			}
-			size_t countJ = 0;
-			for (size_t j = 0; j < dim; ++j) {
-				bool jIsFixed = false;
-				for (std::pair<size_t,double> fix: fixedParams) {
-					if (j == fix.first) {
-						jIsFixed = true;
-						break;
-					}
-				}
-				if (iIsFixed || jIsFixed) {
-					outFile << "0. ";
-	//				if (jIsFixed) {
-	//					++countJ;
-	//				}
-				} else {
-					outFile << hessian[countI][countJ] << " ";
-					++countJ;
-				}
+			if (iIsFixed || jIsFixed) {
+				outFile << "0. ";
+//				if (jIsFixed) {
+//					++countJ;
+//				}
+			} else {
+				outFile << hessian[countI][countJ] << " ";
+				++countJ;
 			}
-			if (!iIsFixed) {
-				++countI;
-			}
-			outFile << std::endl;
 		}
-		outFile.close();
+		if (!iIsFixed) {
+			++countI;
+		}
+		outFile << std::endl;
 	}
+	outFile.close();
 #endif//WRITE_HESSIANS
 
 /// Getting interference of the result
