@@ -187,7 +187,7 @@ def getFreeMap(inFileName):
 	return retVal
 
 def getIntegralFileNames(inFileName):
-	bfe = '.' + getBranchFileEnding
+	bfe = '.' + getBranchFileEnding()
 	string = getFreeString(inFileName)
 	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular" + bfe
 	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular" + bfe
@@ -341,7 +341,8 @@ def getBestFileName(freeMap,
 	            zeroMap           = None, 
 	            hasToBeAfterFile  = None, 
 	            hasToBeBeforeFile = None, 
-	            hasInfo           = []):
+	            hasInfo           = [],
+	            hasNotInfo        = []):
 	freeString = ''
 	for f in freeMap:
 		if f:
@@ -360,7 +361,7 @@ def getBestFileName(freeMap,
 		beforeDate = os.path.getctime(hasToBeBeforeFile)
 
 	allLL = []
-
+	bfe = '.' + getBranchFileEnding()
 	for fn in os.listdir(resultFolder):
 		if not fn.endswith(bfe):
 			continue
@@ -384,6 +385,10 @@ def getBestFileName(freeMap,
 		with open(infoFileName, 'r') as inFile:
 			fitInfo = [str(line.strip()) for line in inFile.readlines()]
 		allInfo = True
+		for info in fitInfo:
+			if info in hasNotInfo:
+				allInfo = False
+				break
 		for info in hasInfo:
 			if not info in fitInfo:
 				allInfo = False
@@ -554,7 +559,7 @@ def parseCmdLine(argv):
 	return freeMap, freeString
 
 def main():
-	bfe = '.' + getBranchFileEnding
+	bfe = '.' + getBranchFileEnding()
 
 	conj     = True
 	makeZM   = False
@@ -567,17 +572,17 @@ def main():
 
 #	bestFn  = getStartFileName(getBestFileName(freeMap))
 
-	firstFileWithoutPrior = "./build/BELLE_fit_results/BELLE_fit_111111111_-16956062.253189_1541618747" + bfe
-	lastFilrWithoutPrior  = "./build/BELLE_fit_results/BELLE_fit_111111111_-20638751.029967_1541673946" + bfe
+	firstFileWithoutPrior = "./build/BELLE_fit_results/BELLE_fit_111111111_-16956062.253189_1541618747.dat"
+	lastFilrWithoutPrior  = "./build/BELLE_fit_results/BELLE_fit_111111111_-20638751.029967_1541673946.dat"
 
-	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896" + bfe
+	dataMarkerFile = "./build/BELLE_fit_results/BELLE_fit_000000000_-16927048.975653_1541596896.dat"
 
-#	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap)
-	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap, hasToBeAfterFile = dataMarkerFile, hasInfo = ["-copy","-prior"])
+	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap)
+#	bestFn, allLL = getBestFileName(freeMap, zeroMap = zeroMap, hasToBeAfterFile = dataMarkerFile)
 
 	allLL.sort()
-	for i in range(10):
-		print "bestLikelihoods",allLL[i]
+#	for i in range(10):
+#		print "bestLikelihoods",allLL[i]
 	print bestFn
 
 	print "-----------------------------"
@@ -645,7 +650,7 @@ def main():
 
 	hists.append(getComaHist(bestFn, fixMap = zeroMap, conj = conj))
 
-	with root_open("DdecayResults_"+freeString+".root", "RECREATE"):
+	with root_open("DdecayResults_"+freeString+"_"+getBranchFileEnding()+".root", "RECREATE"):
 		for h in hists:
 			h.Write()
 	return
