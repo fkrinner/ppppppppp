@@ -185,7 +185,7 @@ TH2D makeDalizFromModel(const std::vector<std::complex<double> >& prodAmps,
 	return hist;
 }
 
-std::shared_ptr<lookupAmplitudeIntens> getLookupAmplitudeFromRootFile(const std::string& fileName, const std::string& histName) {
+std::shared_ptr<lookupAmplitudeIntens> getLookupAmplitudeFromRootFile(const std::string& fileName, const std::string& histName, const std::vector<double>& fs_masses) {
 	TFile* inFile = new TFile(fileName.c_str(), "READ");
 	TH2D*    hist = (TH2D*)inFile->Get(histName.c_str());
 	if (!hist) {
@@ -198,7 +198,7 @@ std::shared_ptr<lookupAmplitudeIntens> getLookupAmplitudeFromRootFile(const std:
 	double sMinY = hist->GetYaxis()->GetBinLowEdge(1);
 	double widthY = hist->GetYaxis()->GetBinWidth(1);
 
-	std::shared_ptr<efficiencyFunction> eff = std::make_shared<BELLE_DtoKpipi_efficiency>();
+	std::shared_ptr<efficiencyFunction> eff = std::make_shared<BELLE_DtoKpipi_efficiency_CP>(fs_masses);
 	
 	std::vector<std::vector<double> > intensities(hist->GetNbinsX(), std::vector<double>(hist->GetNbinsY(), 0.));
 	for (int i = 0; i < hist->GetNbinsX(); ++i) {
@@ -209,7 +209,7 @@ std::shared_ptr<lookupAmplitudeIntens> getLookupAmplitudeFromRootFile(const std:
 	delete hist;
 	inFile->Close();
 	delete inFile;
-	return std::make_shared<lookupAmplitudeIntens_efficiency>(eff, std::make_shared<kinematicSignature>(2), histName + "_efficiency", sMinX, widthX, sMinY, widthY, intensities);
+	return std::make_shared<lookupAmplitudeIntens_efficiency>(eff, std::make_shared<kinematicSignature>(2), histName + "_efficiencyCP", sMinX, widthX, sMinY, widthY, intensities);
 }
 
 std::vector<double> get_binning(const double m_min, const double m_max, const double bin_width, const double finer_min, const double finer_max, const int finer_factor) {
@@ -395,10 +395,10 @@ std::vector<std::shared_ptr<amplitude> > get_model(std::vector<bool> free_map, c
 	return model;
 }
 
-std::shared_ptr<amplitude> get_bg_amplitude() {
+std::shared_ptr<amplitude> get_bg_amplitude(const std::vector<double>& fs_masses) {
 //	std::shared_ptr<dalitzPolynomialAmplitude> bg_amplitude = std::make_shared<dalitzPolynomialAmplitude>(std::make_shared<kinematicSignature>(2), "dalitzBackground_version2.pol", .405, 1.845, .407, 2.057);
 //	return bg_amplitude;
-	return getLookupAmplitudeFromRootFile("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/polotossos.root","Dalitz_model");
+	return getLookupAmplitudeFromRootFile("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/polotossos.root","Dalitz_model", fs_masses);
 }
 
 std::vector<std::complex<double> > getBelleProdAmps(
@@ -426,7 +426,12 @@ void randomizeStartValues(std::vector<std::complex<double> > ampls, double scale
 
 std::vector<std::string> wave_names = {"KpiRightS", "KpiRightP", "KpiRightD", "KpiWrongS", "KpiWrongP", "KpiWrongD", "piPiS", "piPiP", "piPiD"};
 
-std::vector<std::complex<double> > getRandomizedStartValues(const std::vector<size_t>& n_waves, double CP_scale_factor, bool anchorFirst, bool copyRightToWrong, std::complex<double> bg_amplitude) {
+std::vector<std::complex<double> > getRandomizedStartValues(const std::vector<size_t>& n_waves, 
+                                                            double                     CP_scale_factor, 
+                                                            bool                       anchorFirst, 
+                                                            bool                       copyRightToWrong, 
+                                                            std::complex<double>       bg_amplitude, 
+                                                            bool                       fixBG = false) {
 	std::vector<std::complex<double> > retVal;
 	size_t nKright = n_waves[0] + n_waves[1] + n_waves[2];
 	size_t n_model = 0;
@@ -453,11 +458,18 @@ std::vector<std::complex<double> > getRandomizedStartValues(const std::vector<si
 			retVal[n] /= phase;
 		}
 	}
-	retVal.push_back(bg_amplitude);
+	if (!fixBG) {
+		retVal.push_back(bg_amplitude);
+	}
 	return retVal;
 }
 
-std::vector<double> getParamsFromProdAmps(const std::vector<std::complex<double> >& prodAmps, const std::vector<size_t>& n_waves, bool anchorFirst, bool copyRightToWrong, const std::vector<bool>& fixToZero) {
+std::vector<double> getParamsFromProdAmps(const std::vector<std::complex<double> >& prodAmps, 
+                                          const std::vector<size_t>&                n_waves, 
+                                          bool                                      anchorFirst, 
+                                          bool                                      copyRightToWrong, 
+                                          const                                     std::vector<bool>& fixToZero, 
+                                          bool                                      fixBG = false) {
 	std::vector<double> retVal;
 	const size_t nKright = n_waves[0] + n_waves[1] + n_waves[2];
 	const size_t nKwrong = n_waves[3] + n_waves[4] + n_waves[5];
@@ -525,7 +537,9 @@ std::vector<double> getParamsFromProdAmps(const std::vector<std::complex<double>
 			++count;
 		}
 	}
-	retVal.push_back(prodAmps[2*n_model].real()); // The background
+	if (!fixBG) {
+		retVal.push_back(prodAmps[2*n_model].real()); // The background
+	}
 	for (std::complex<double>& scale : scaleFactors) { // The scale factors
 		retVal.push_back(scale.real());
 		retVal.push_back(scale.imag());
@@ -619,7 +633,14 @@ void checkDerivativesNlopt(std::shared_ptr<logLikelihoodBase> ll, const std::vec
 	}
 }
 
-bool doTheFixingAndCopying(std::shared_ptr<logLikelihood> ll, const std::vector<size_t>& n_waves, double CP_scale_factor, bool copyRightToWrong, const std::vector<bool>& fixToZeroList, bool anchorFirst) {
+bool doTheFixingAndCopying(std::shared_ptr<logLikelihood> ll, 
+                           const std::vector<size_t>& n_waves, 
+                           double                     CP_scale_factor, 
+                           bool                       copyRightToWrong, 
+                           const std::vector<bool>&   fixToZeroList, 
+                           bool                       anchorFirst, 
+                           bool                       fixBG  = false,
+                           std::complex<double>       BGampl = std::complex<double>(0.,0.)) {
 
 	const size_t nKright = n_waves[0] + n_waves[1] + n_waves[2];
 	const size_t nKwrong = n_waves[3] + n_waves[4] + n_waves[5];
@@ -762,9 +783,20 @@ bool doTheFixingAndCopying(std::shared_ptr<logLikelihood> ll, const std::vector<
 			return false;
 		}
 	}
-	if (!ll->fixParameter(4*n_model+1, 0.)) { // Fix imag part of the BG amplitude to zero
-		std::cout << "Dnine::doTheFixingAndCopying(...): ERROR: Could not fix BG amplitude's imag part (" <<2*n_model+1 << ") to zero" << std::endl;
-		return false;
+	if (fixBG) {
+		if (!ll->fixParameter(4*n_model  , BGampl.real())) { // Fix real part of the BG amplitude
+			std::cout << "Dnine::doTheFixingAndCopying(...): ERROR: Could not fix BG amplitude's real part (" <<2*n_model << ") to " << BGampl.real() << std::endl;
+			return false;
+		}
+		if (!ll->fixParameter(4*n_model+1, BGampl.imag())) { // Fix imag part of the BG amplitude
+			std::cout << "Dnine::doTheFixingAndCopying(...): ERROR: Could not fix BG amplitude's imag part (" <<2*n_model+1 << ") to " << BGampl.imag() << std::endl;
+			return false;
+		}
+	} else {
+		if (!ll->fixParameter(4*n_model+1, 0.)) { // Fix imag part of the BG amplitude to zero
+			std::cout << "Dnine::doTheFixingAndCopying(...): ERROR: Could not fix BG amplitude's imag part (" <<2*n_model+1 << ") to zero" << std::endl;
+			return false;
+		}
 	}
 	return true;
 }

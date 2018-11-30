@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
 		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_cp_file_name+"_regular."<<branchFileEnding<<"' and '.../integralFiles/ac_"+integral_cp_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
 	}
 
-	std::shared_ptr<amplitude> bg_amplitude = get_bg_amplitude();
+	std::shared_ptr<amplitude> bg_amplitude = get_bg_amplitude(fs_masses);
 	std::shared_ptr<integrator> integral_bg = std::make_shared<integrator>(integral_points, generator, std::vector<std::shared_ptr<amplitude> >(1,bg_amplitude), efficiency);
 
 	std::string integral_bg_file_name = "integral_bg[" + bg_amplitude->name() + "]";
@@ -243,8 +243,8 @@ int main(int argc, char* argv[]) {
 //		}
 //		BELLE_result_values.push_back(std::complex<double>(pow(nData * total_bg_coefficient/integral_bg->totalIntensity(std::vector<std::complex<double> >(1,std::complex<double>(1.,0.)), true), .5),0.));
 
-		std::complex<double> bg_amplitude(pow(nData * total_bg_coefficient/integral_bg->totalIntensity(std::vector<std::complex<double> >(1,std::complex<double>(1.,0.)), true), .5), 0.);
-		std::vector<std::complex<double> > startValues = getRandomizedStartValues( n_waves, CP_scale_factor, true, copyRightToWrong, bg_amplitude);
+		std::complex<double> bg_production_amplitude(pow(nData * total_bg_coefficient/integral_bg->totalIntensity(std::vector<std::complex<double> >(1,std::complex<double>(1.,0.)), true), .5), 0.);
+		std::vector<std::complex<double> > startValues = getRandomizedStartValues( n_waves, CP_scale_factor, true, copyRightToWrong, bg_production_amplitude);
 
 		{ // Normalize to number of events... keep the BG coefficient
 			std::complex<double> BG_coeff = startValues[2*n_model];

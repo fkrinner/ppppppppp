@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
 
 	std::vector<std::shared_ptr<amplitude> > model    = get_model(freeMap, mD0, mPi, mKs);
 	std::vector<std::shared_ptr<amplitude> > model_cp = get_model(freeMap, mD0, mPi, mKs, true);
-	std::shared_ptr<amplitude> bg_amplitude           = get_bg_amplitude();
+	std::shared_ptr<amplitude> bg_amplitude           = get_bg_amplitude(fs_masses);
 
 	const size_t n_model = model.size();
 

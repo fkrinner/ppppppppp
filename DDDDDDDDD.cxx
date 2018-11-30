@@ -53,7 +53,7 @@ int main() {
 		std::cout << "Dnine::main(...): INFO: Loaded: " << "'./integralFiles/ps_"+integral_cp_file_name+"_regular.dat' and './integralFiles/ac_"+integral_cp_file_name+"_regular.dat'" <<std::endl;
 	}
 
-	std::shared_ptr<amplitude> bg_amplitude = get_bg_amplitude();
+	std::shared_ptr<amplitude> bg_amplitude = get_bg_amplitude(fs_masses);
 	std::shared_ptr<integrator> integral_bg = std::make_shared<integrator>(integral_points, generator, std::vector<std::shared_ptr<amplitude> >(1,bg_amplitude), efficiency);
 
 	std::string integral_bg_file_name = "integral_bg[" + bg_amplitude->name() + "]";
