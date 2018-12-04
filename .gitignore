@@ -1,5 +1,7 @@
 build/
 build2/
+changedValues/
+
 
 *.pdf
 *.root
@@ -43,4 +45,4 @@ testFile.4pps
 theWhole.py
 vals.dat
 widthVsZeroModeEigenvalue
-
+changedFileName.lol
