@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[]) {
 	if (argc < 2) {
-		std::cout << "DostDrocess.cxx::main(): ERROR: No input file given" << std::endl;
+		std::cout << "DostDrocess::main(...): ERROR: No input file given" << std::endl;
 		return 1;
 	}
 
@@ -14,15 +14,16 @@ int main(int argc, char* argv[]) {
 	const int softpionSign = 0;
 
 	std::string resultFileName = argv[1];
-	for (int i = 2; i < arcg; ++i) {
-		if (argv[i] == "-hessian") {
-			std::cout << "DostDrocess.cxx::main(): INFO: Create the hessian" << std::endl;
+	for (int i = 2; i < argc; ++i) {
+		std::string argString(argv[i]);
+		if (argString == "-hessian") {
+			std::cout << "DostDrocess::main(...): INFO: Create the hessian" << std::endl;
 			do_hessian = true;
-		} else if (argv[i] == "-dalitz") {
-			std::cout << "DostDrocess.cxx::main(): INFO: Create Dalitz plots" << std::endl;
+		} else if (argString == "-dalitz") {
+			std::cout << "DostDrocess::main(...): INFO: Create Dalitz plots" << std::endl;
 			do_dalitz_plot = true;
 		} else {
-			std::cout << "DostDrocess.cxx::main(): WARNING: Unknown command line argument '" << argv[i] << std::endl;
+			std::cout << "DostDrocess::main(...): WARNING: Unknown command line argument '" << argv[i] << std::endl;
 		}
 	}
 
@@ -40,6 +41,8 @@ int main(int argc, char* argv[]) {
 	const double total_CP_coefficient     = (1.-f_sig)*(1.-f_rand)*f_CP;
 //	const double total_bg_coefficient     = (1.-f_sig)*f_rand;
 	const double CP_scale_factor          = pow(total_CP_coefficient/total_signal_coefficient, .5);
+
+	const double numLim = 1.e-5;
 
 	std::string freeString;
 	std::vector<std::complex<double> > prodAmps = utils::readComplexValuesFromTextFile(resultFileName, false);
@@ -61,19 +64,19 @@ int main(int argc, char* argv[]) {
 		std::string line;
 		std::ifstream infoFile(infoFileName.c_str());
 		while (std::getline(infoFile, line)) {
-			if (line == "./Dnine.exe ") {
+			if (line == "./Dnine.exe " or line == "Dnine.exe ") {
 				continue;
 			}
 			if (line == "-prior ") {
-				std::cout << "DostDrocess.cxx::main(): INFO: Using prior" << std::endl;
+				std::cout << "DostDrocess::main(...): INFO: Using prior" << std::endl;
 				prior = true;
 			} else if(line == "-copy ") {
-				std::cout << "DostDrocess.cxx::main(): INFO: Copy KpiRight to KpiWrong" << std::endl;
+				std::cout << "DostDrocess::main(...): INFO: Copy KpiRight to KpiWrong" << std::endl;
 				copy = true;
 			} else {
 				int i = atoi(line.c_str());
 				if (i == 0 and line != "0 ") {
-					std::cout << "DostDrocess.cxx::main(): ERROR: Invalid option: '" << line << "'" << std::endl;
+					std::cout << "DostDrocess::main(...): ERROR: Invalid option: '" << line << "'" << std::endl;
 					return 1;
 				}
 				if (i < 0) {
@@ -102,7 +105,7 @@ int main(int argc, char* argv[]) {
 
 	{
 		std::string integral_file_name = "integral_model_" + freeString;
-		if (integral->loadIntegrals("./integralFiles/ps_"+integral_file_name+"_regular." + branchFileEnding,"./integralFiles/ac_"+integral_file_name+"_regular." + branchFileEnding)) {
+		if (integral->loadIntegrals("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_"+integral_file_name+"_regular." + branchFileEnding,"/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_"+integral_file_name+"_regular." + branchFileEnding)) {
 			std::cout << "DostDrocess::main(...): INFO: Integral loaded" << std::endl;
 		} else {
 			std::cout << "DostDrocess::main(...): ERROR: Could not load integral" << std::endl;
@@ -110,7 +113,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		std::string integral_cp_file_name =  "integral_cp_model_" + freeString;
-		if (integral_cp->loadIntegrals("./integralFiles/ps_"+integral_cp_file_name+"_regular." + branchFileEnding,"./integralFiles/ac_"+integral_cp_file_name+"_regular." + branchFileEnding)) {
+		if (integral_cp->loadIntegrals("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_"+integral_cp_file_name+"_regular." + branchFileEnding,"/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_"+integral_cp_file_name+"_regular." + branchFileEnding)) {
 			std::cout << "DostDrocess::main(...): INFO: CP integral loaded" << std::endl;
 		} else {
 			std::cout << "DostDrocess::main(...): ERROR: Could not load CP integral" << std::endl;
@@ -118,7 +121,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		std::string integral_bg_file_name = "integral_bg[" + bg_amplitude->name() + "]";
-		if (integral_bg->loadIntegrals("./integralFiles/ps_"+integral_bg_file_name+"_regular." + branchFileEnding,"./integralFiles/ac_"+integral_bg_file_name+"_regular." + branchFileEnding)) {
+		if (integral_bg->loadIntegrals("/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_"+integral_bg_file_name+"_regular." + branchFileEnding,"/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_"+integral_bg_file_name+"_regular." + branchFileEnding)) {
 			std::cout << "DostDrocess::main(...): INFO: BG integral loaded" << std::endl;
 		} else {
 			std::cout << "DostDrocess::main(...): ERROR: Could not load BG integral" << std::endl;
@@ -145,9 +148,9 @@ int main(int argc, char* argv[]) {
 	const bool signalEvents = true;
 	std::string dataFileName;
 	if (signalEvents) {
-		dataFileName = "./BELLE_data.root";
+		dataFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_data.root";
 	} else {
-		dataFileName = "./BELLE_bothSidebandsHigherMD.root";
+		dataFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_bothSidebandsHigherMD.root";
 	}
 	std::vector<std::vector<double> > dataPoints = getBELLEevents(dataFileName, softpionSign);
 	dataPoints = utils::sanitizeBELLEdataPoints(dataPoints, fs_masses);
@@ -167,7 +170,42 @@ int main(int argc, char* argv[]) {
 
 	double evalLL =  ll->eval(prodAmps);
 	std::cout << "DostDrocess::main(...): INFO: Likelihood eval: " << evalLL << " difference to input is: " << inputLL-evalLL << std::endl;
-	
+	if (pow(inputLL-evalLL, 2) > numLim) {
+		std::cout << "DostDrocess::main(...): ERROR: Difference to input LL too big (> " << pow(numLim,.5) << ")" << std::endl;
+		return 1;
+	}
+
+	if (do_hessian) {
+		std::vector<std::string> splitted = utils::splitString(resultFileName, '/');
+		std::vector<std::string> parts    = utils::splitString(splitted[splitted.size()-1], '_');
+
+		std::string hessianFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results/hessians/BELLE_hessian";
+		for (size_t i = 2; i < parts.size(); ++i) {
+			hessianFileName += "_" + parts[i];
+		}
+		std::cout << "DostDrocess::main(...): INFO: Likelihood eval: hessian file name is '" << hessianFileName << "'" << std::endl;
+		
+		std::ofstream outFile;
+		outFile.open(hessianFileName.c_str());
+
+		std::vector<double> realParameters = getParamsFromProdAmps(prodAmps, n_waves, true, copy, fixToZeroMap);
+
+		std::vector<std::vector<double> > hessian = ll->DDconstrainedProdAmps(realParameters);
+
+		if (hessian.size() != 2*prodAmps.size()) {
+			std::cout << "DostDrocess::main(...): ERROR: Hessian has wrong size: " << hessian.size() << " (should have " << 2*prodAmps.size() << std::endl;
+			return 1;
+		}
+
+		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
+		for (size_t i = 0; i < hessian.size(); ++i) {
+			for (size_t j = 0; j < hessian.size(); ++j) {
+				outFile << hessian[i][j] << " ";
+			}
+			outFile << std::endl;
+		}
+		outFile.close();
+	}
 
 	if(do_dalitz_plot) {
 
