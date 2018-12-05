@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 	const double f_rand = 8.95779e-01;// +- 2.14394e-03
 	const double f_CP   = 0.492;
 
-	const double total_signal_coefficient = f_sig + (1.-f_sig)*f_rand*(1.-f_CP);
+	const double total_signal_coefficient = f_sig + (1.-f_sig)*(1.-f_rand)*(1.-f_CP);
 	const double total_CP_coefficient    = (1.-f_sig)*(1.-f_rand)*f_CP;
 	const double total_bg_coefficient    = (1.-f_sig)*f_rand;
 
