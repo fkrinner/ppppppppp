@@ -7,9 +7,24 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
+// TODO:
+	bool do_dalitz_plot = false;
+	bool do_hessian     = false;
+//
 	const int softpionSign = 0;
 
 	std::string resultFileName = argv[1];
+	for (int i = 2; i < arcg; ++i) {
+		if (argv[i] == "-hessian") {
+			std::cout << "DostDrocess.cxx::main(): INFO: Create the hessian" << std::endl;
+			do_hessian = true;
+		} else if (argv[i] == "-dalitz") {
+			std::cout << "DostDrocess.cxx::main(): INFO: Create Dalitz plots" << std::endl;
+			do_dalitz_plot = true;
+		} else {
+			std::cout << "DostDrocess.cxx::main(): WARNING: Unknown command line argument '" << argv[i] << std::endl;
+		}
+	}
 
 	const size_t      integral_points = 6000*10*10*10*10; // Merged two 30000000 integrals for the model // Comment for ease bugfix
 	double            inputLL         = std::numeric_limits<double>::infinity();
@@ -152,82 +167,86 @@ int main(int argc, char* argv[]) {
 
 	double evalLL =  ll->eval(prodAmps);
 	std::cout << "DostDrocess::main(...): INFO: Likelihood eval: " << evalLL << " difference to input is: " << inputLL-evalLL << std::endl;
+	
 
-	std::shared_ptr<efficiencyFunction> unitEfficiency = std::make_shared<threeParticlPerfectEfficiency>(std::make_shared<kinematicSignature>(2));
-	std::string outFileNameDalitz = "dalitzPlotResults_"+freeString + "_" + branchFileEnding +".root";
-	std::pair<bool, std::vector<double> > norms_ac = integral->getNormalizations(true);
-	std::pair<bool, std::vector<double> > norms    = integral->getNormalizations(false);
-	if (!norms.first or !norms_ac.first) {
-		std::cout << "DostDrocess::main(...): ERROR: Could not get normalizations" << std::endl;
-		return 1;
-	}
-//	for (size_t a = 0; a < norms.second.size(); ++a) {
-//		norms.second[a] = 1./norms.second[a];//orms_ac.second[a];///norms.second[a];
-//	}
-	TFile* outFile = new TFile(outFileNameDalitz.c_str(), "RECREATE");
-	TH2D dataHist  = makeDataDalitz(dataPoints, fs_masses);
-	dataHist.Write();
-	TH2D dataHistOrtho  = makeDataDalitz(dataPoints, fs_masses, 12,23);
-	dataHistOrtho.Write();
-	const bool singleWavePlots = false;
-	if (singleWavePlots) {
-		for (size_t a = 0; a < 2*n_model; ++a) {
-			TH2D hist = makeDalizFromModel({prodAmps[a]}, {model[a]}, {norms.second[a]}, fs_masses, efficiency);
-//			TH2D hist = makeDalizFromModel({prodAmps[a]}, {model[a]}, fs_masses, efficiency);
-			hist.Write();
-			TH2D histOrtho = makeDalizFromModel({prodAmps[a]}, {model[a]}, {norms.second[a]}, fs_masses, efficiency, 12,23);
-//			TH2D histOrtho = makeDalizFromModel({prodAmps[a]}, {model[a]}, fs_masses, efficiency, 12,23);
-			histOrtho.Write();
+	if(do_dalitz_plot) {
+
+		std::shared_ptr<efficiencyFunction> unitEfficiency = std::make_shared<threeParticlPerfectEfficiency>(std::make_shared<kinematicSignature>(2));
+		std::string outFileNameDalitz = "dalitzPlotResults_"+freeString + "_" + branchFileEnding +".root";
+		std::pair<bool, std::vector<double> > norms_ac = integral->getNormalizations(true);
+		std::pair<bool, std::vector<double> > norms    = integral->getNormalizations(false);
+		if (!norms.first or !norms_ac.first) {
+			std::cout << "DostDrocess::main(...): ERROR: Could not get normalizations" << std::endl;
+			return 1;
 		}
-	}
-	size_t countWaves = 0;
-	for (size_t w = 0; w < 9; ++w) {
-		TH2D histWave = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[countWaves], &prodAmps[countWaves + n_waves[w]]),
-		                                   std::vector<std::shared_ptr<amplitude> >(&model[countWaves], &model[countWaves + n_waves[w]]),
-		                                   std::vector<double>(&norms.second[countWaves], &norms.second[countWaves + n_waves[w]]),
-		fs_masses, efficiency, 12, 13, "_"+wave_names[w]);
-		histWave.Write();
-		TH2D histWaveOrtho = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[countWaves], &prodAmps[countWaves + n_waves[w]]),
-		                                        std::vector<std::shared_ptr<amplitude> >(&model[countWaves], &model[countWaves + n_waves[w]]),
-		                                        std::vector<double>(&norms.second[countWaves], &norms.second[countWaves + n_waves[w]]),
-		fs_masses, efficiency, 12, 23, "_"+wave_names[w]);
-		histWaveOrtho.Write();
-		countWaves += n_waves[w];
-	}
+	//	for (size_t a = 0; a < norms.second.size(); ++a) {
+	//		norms.second[a] = 1./norms.second[a];//orms_ac.second[a];///norms.second[a];
+	//	}
+		TFile* outFile = new TFile(outFileNameDalitz.c_str(), "RECREATE");
+		TH2D dataHist  = makeDataDalitz(dataPoints, fs_masses);
+		dataHist.Write();
+		TH2D dataHistOrtho  = makeDataDalitz(dataPoints, fs_masses, 12,23);
+		dataHistOrtho.Write();
+		const bool singleWavePlots = false;
+		if (singleWavePlots) {
+			for (size_t a = 0; a < 2*n_model; ++a) {
+				TH2D hist = makeDalizFromModel({prodAmps[a]}, {model[a]}, {norms.second[a]}, fs_masses, efficiency);
+	//			TH2D hist = makeDalizFromModel({prodAmps[a]}, {model[a]}, fs_masses, efficiency);
+				hist.Write();
+				TH2D histOrtho = makeDalizFromModel({prodAmps[a]}, {model[a]}, {norms.second[a]}, fs_masses, efficiency, 12,23);
+	//			TH2D histOrtho = makeDalizFromModel({prodAmps[a]}, {model[a]}, fs_masses, efficiency, 12,23);
+				histOrtho.Write();
+			}
+		}
+		size_t countWaves = 0;
+		for (size_t w = 0; w < 9; ++w) {
+			TH2D histWave = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[countWaves], &prodAmps[countWaves + n_waves[w]]),
+				                           std::vector<std::shared_ptr<amplitude> >(&model[countWaves], &model[countWaves + n_waves[w]]),
+				                           std::vector<double>(&norms.second[countWaves], &norms.second[countWaves + n_waves[w]]),
+			fs_masses, efficiency, 12, 13, "_"+wave_names[w]);
+			histWave.Write();
+			TH2D histWaveOrtho = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[countWaves], &prodAmps[countWaves + n_waves[w]]),
+				                                std::vector<std::shared_ptr<amplitude> >(&model[countWaves], &model[countWaves + n_waves[w]]),
+				                                std::vector<double>(&norms.second[countWaves], &norms.second[countWaves + n_waves[w]]),
+			fs_masses, efficiency, 12, 23, "_"+wave_names[w]);
+			histWaveOrtho.Write();
+			countWaves += n_waves[w];
+		}
 
-	TH2D histAll = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[0], &prodAmps[n_model]),
-	                                  std::vector<std::shared_ptr<amplitude> >(&model[0], &model[n_model]),
-	                                  std::vector<double>(&norms.second[0], &norms.second[n_model]),
-	fs_masses, efficiency);
-	histAll.Write();
-	TH2D histAllOrtho = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[0], &prodAmps[n_model]),
-	                                       std::vector<std::shared_ptr<amplitude> >(&model[0], &model[n_model]),
-	                                       std::vector<double>(&norms.second[0], &norms.second[n_model]),
-	fs_masses, efficiency, 12, 23);
-	histAllOrtho.Write();
-	TH2D histAllCP = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[n_model], &prodAmps[2*n_model]),
-	                                    std::vector<std::shared_ptr<amplitude> >(&model[n_model], &model[2*n_model]),
-	                                    std::vector<double>(&norms.second[n_model], &norms.second[2*n_model]),
-	fs_masses, efficiency, 12, 13, "_CP");
-	histAllCP.Write();
-	TH2D histAllOrthoCP = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[n_model], &prodAmps[2*n_model]),
-	                                         std::vector<std::shared_ptr<amplitude> >(&model[n_model], &model[2*n_model]),
-	                                         std::vector<double>(&norms.second[n_model], &norms.second[2*n_model]),
-	fs_masses, efficiency, 12, 23, "_CP");
-	histAllOrthoCP.Write();
-	TH2D histBg = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, {norms.second[2*n_model]}, fs_masses, unitEfficiency);
-//	TH2D histBg = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, fs_masses, unitEfficiency);
-	histBg.Write();
-	TH2D histBgOrtho = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, {norms.second[2*n_model]}, fs_masses, unitEfficiency, 12, 23);
-//	TH2D histBgOrtho = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, fs_masses, unitEfficiency, 12, 23);
-	histBgOrtho.Write();
-	std::shared_ptr<amplitude> constantAmpl = std::make_shared<constantAmplitude>(std::make_shared<kinematicSignature>(2));
-	TH2D histAcceptance      = makeDalizFromModel({1.}, {constantAmpl}, {1.}, fs_masses, efficiency,12,13,"TimesEfficiency");
-	histAcceptance.Write();
-	TH2D histAcceptanceOrtho = makeDalizFromModel({1.}, {constantAmpl}, {1.}, fs_masses, efficiency,12,23,"TimesEfficiency");
-	histAcceptanceOrtho.Write();
+		TH2D histAll = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[0], &prodAmps[n_model]),
+			                          std::vector<std::shared_ptr<amplitude> >(&model[0], &model[n_model]),
+			                          std::vector<double>(&norms.second[0], &norms.second[n_model]),
+		fs_masses, efficiency);
+		histAll.Write();
+		TH2D histAllOrtho = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[0], &prodAmps[n_model]),
+			                               std::vector<std::shared_ptr<amplitude> >(&model[0], &model[n_model]),
+			                               std::vector<double>(&norms.second[0], &norms.second[n_model]),
+		fs_masses, efficiency, 12, 23);
+		histAllOrtho.Write();
+		TH2D histAllCP = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[n_model], &prodAmps[2*n_model]),
+			                            std::vector<std::shared_ptr<amplitude> >(&model[n_model], &model[2*n_model]),
+			                            std::vector<double>(&norms.second[n_model], &norms.second[2*n_model]),
+		fs_masses, efficiency, 12, 13, "_CP");
+		histAllCP.Write();
+		TH2D histAllOrthoCP = makeDalizFromModel(std::vector<std::complex<double> >(&prodAmps[n_model], &prodAmps[2*n_model]),
+			                                 std::vector<std::shared_ptr<amplitude> >(&model[n_model], &model[2*n_model]),
+			                                 std::vector<double>(&norms.second[n_model], &norms.second[2*n_model]),
+		fs_masses, efficiency, 12, 23, "_CP");
+		histAllOrthoCP.Write();
+		TH2D histBg = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, {norms.second[2*n_model]}, fs_masses, unitEfficiency);
+	//	TH2D histBg = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, fs_masses, unitEfficiency);
+		histBg.Write();
+		TH2D histBgOrtho = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, {norms.second[2*n_model]}, fs_masses, unitEfficiency, 12, 23);
+	//	TH2D histBgOrtho = makeDalizFromModel({prodAmps[2*n_model]}, {model[2*n_model]}, fs_masses, unitEfficiency, 12, 23);
+		histBgOrtho.Write();
+		std::shared_ptr<amplitude> constantAmpl = std::make_shared<constantAmplitude>(std::make_shared<kinematicSignature>(2));
+		TH2D histAcceptance      = makeDalizFromModel({1.}, {constantAmpl}, {1.}, fs_masses, efficiency,12,13,"TimesEfficiency");
+		histAcceptance.Write();
+		TH2D histAcceptanceOrtho = makeDalizFromModel({1.}, {constantAmpl}, {1.}, fs_masses, efficiency,12,23,"TimesEfficiency");
+		histAcceptanceOrtho.Write();
 
-	outFile->Close();
-	std::cout << "DostDrocess::main(...): INFO: Finished creating Dalitz plots... exit" << std::endl;
+		outFile->Close();
+		std::cout << "DostDrocess::main(...): INFO: Finished creating Dalitz plots... exit" << std::endl;
+	}
 	return 0;
 }
