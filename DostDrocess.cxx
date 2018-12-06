@@ -10,6 +10,7 @@ int main(int argc, char* argv[]) {
 // TODO:
 	bool do_dalitz_plot = false;
 	bool do_hessian     = false;
+	bool do_covariance  = false;
 //
 	const int softpionSign = 0;
 
@@ -22,10 +23,19 @@ int main(int argc, char* argv[]) {
 		} else if (argString == "-dalitz") {
 			std::cout << "DostDrocess::main(...): INFO: Create Dalitz plots" << std::endl;
 			do_dalitz_plot = true;
+		} else if (argString == "-coma") {
+			std::cout << "DostDrocess::main(...): INFO: Create covariance matrix" << std::endl;
+			do_covariance = true;
 		} else {
 			std::cout << "DostDrocess::main(...): WARNING: Unknown command line argument '" << argv[i] << std::endl;
 		}
 	}
+
+	if (do_hessian && do_covariance) {
+		std::cout << "DostDrocess::main(...): INFO: Cannot do covariance matrix and hessian" << std::endl;
+		return 1;
+	}
+
 
 	const size_t      integral_points = 6000*10*10*10*10; // Merged two 30000000 integrals for the model // Comment for ease bugfix
 	double            inputLL         = std::numeric_limits<double>::infinity();
@@ -179,24 +189,17 @@ int main(int argc, char* argv[]) {
 		std::vector<std::string> splitted = utils::splitString(resultFileName, '/');
 		std::vector<std::string> parts    = utils::splitString(splitted[splitted.size()-1], '_');
 
-		std::string hessianFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results/hessians/BELLE_hessian";
+		std::string hessianFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results/hessians/BELLE_parameterHessian";
 		for (size_t i = 2; i < parts.size(); ++i) {
 			hessianFileName += "_" + parts[i];
 		}
-		std::cout << "DostDrocess::main(...): INFO: Likelihood eval: hessian file name is '" << hessianFileName << "'" << std::endl;
-		
-		std::ofstream outFile;
-		outFile.open(hessianFileName.c_str());
+		std::cout << "DostDrocess::main(...): INFO: Hessian file name is '" << hessianFileName << "'" << std::endl;
+		std::ofstream outFile;		
 
 		std::vector<double> realParameters = getParamsFromProdAmps(prodAmps, n_waves, true, copy, fixToZeroMap);
+		std::vector<std::vector<double> > hessian = ll->makeFinalHessian(realParameters, ll->DDeval(prodAmps));
 
-		std::vector<std::vector<double> > hessian = ll->DDconstrainedProdAmps(realParameters);
-
-		if (hessian.size() != 2*prodAmps.size()) {
-			std::cout << "DostDrocess::main(...): ERROR: Hessian has wrong size: " << hessian.size() << " (should have " << 2*prodAmps.size() << std::endl;
-			return 1;
-		}
-
+		outFile.open(hessianFileName.c_str());
 		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 		for (size_t i = 0; i < hessian.size(); ++i) {
 			for (size_t j = 0; j < hessian.size(); ++j) {
@@ -205,6 +208,65 @@ int main(int argc, char* argv[]) {
 			outFile << std::endl;
 		}
 		outFile.close();
+		std::cout << "DostDrocess::main(...): INFO: Hessian '" + hessianFileName + "' file created." << std::endl;
+		std::cout << "now run '/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/sampleFromhessian.py " << hessianFileName << "'" << std::endl;
+
+	}
+	if (do_covariance) {
+		std::ofstream outFile;		
+		std::vector<std::string> splitted = utils::splitString(resultFileName, '/');
+		std::vector<std::string> parts    = utils::splitString(splitted[splitted.size()-1], '_');
+
+		std::string sampleFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results/hessians/BELLE_sample";
+		for (size_t i = 2; i < parts.size(); ++i) {
+			sampleFileName += "_" + parts[i];
+		}
+		std::cout << "DostDrocess::main(...): INFO: Sample file name is '" << sampleFileName << "'" << std::endl;
+
+		std::vector<double> sampledVector = utils::readRealValuesFromTextFile(sampleFileName);
+
+		std::vector<double> realParameters = getParamsFromProdAmps(prodAmps, n_waves, true, copy, fixToZeroMap);
+		size_t nSample = sampledVector.size()/realParameters.size();
+		std::cout << "DostDrocess::main(...): INFO: Sample size is " << nSample << std::endl;
+
+		std::vector<std::vector<double> > samplingDeltas = utils::reshape(sampledVector, realParameters.size(), nSample);
+		std::vector<std::vector<double> > coma(2*prodAmps.size(), std::vector<double>(2*prodAmps.size(), 0.));
+
+		for (size_t s = 0; s < nSample; ++s) {
+			for (size_t p = 0; p < realParameters.size(); ++p ) {
+				realParameters[p] += samplingDeltas[s][p];
+			}
+			std::vector<std::complex<double> > DprodAmps = ll->fullParamsToProdAmps(ll->getFullParameters(realParameters));
+			for (size_t a1 = 0; a1 < DprodAmps.size(); ++a1) {
+				for(size_t a2 = 0; a2 < DprodAmps.size(); ++a2) {
+					std::complex<double> d1 = DprodAmps[a1] - prodAmps[a1];
+					std::complex<double> d2 = DprodAmps[a2] - prodAmps[a2];
+
+					coma[2*a1  ][2*a2  ] += d1.real() * d2.real() / nSample;
+					coma[2*a1+1][2*a2  ] += d1.imag() * d2.real() / nSample;
+					coma[2*a1  ][2*a2+1] += d1.real() * d2.imag() / nSample;
+					coma[2*a1+1][2*a2+1] += d1.imag() * d2.imag() / nSample;
+				}
+			}
+			for (size_t p = 0; p < realParameters.size(); ++p ) {
+				realParameters[p] -= samplingDeltas[s][p];
+			}
+		}
+
+		std::string comaFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_fit_results/hessians/BELLE_COMA";
+		for (size_t i = 2; i < parts.size(); ++i) {
+			comaFileName += "_" + parts[i];
+		}
+		outFile.open(comaFileName.c_str());
+		outFile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
+		for (size_t p = 0; p < coma.size(); ++p ){
+			for (size_t q = 0; q < coma.size(); ++q) {
+				outFile << coma[p][q] << " ";
+			}
+			outFile << std::endl;
+		}
+		outFile.close();
+		std::cout << "DostDrocess::main(...): INFO: COMA file '" << comaFileName << "' witten" << std::endl;
 	}
 
 	if(do_dalitz_plot) {

@@ -69,6 +69,29 @@ namespace utils {
 		return retVal;
 	}
 
+	std::vector<std::vector<double> > reshape(const std::vector<double>& inVector, size_t dimX, size_t dimY) {
+		std::vector<std::vector<double> > retVal(dimY, std::vector<double>(dimX, 0.));
+		size_t countX = 0;
+		size_t countY = 0;
+		for (const double& val : inVector) {
+			retVal[countY][countX] = val;
+			++countX;
+			if (countX == dimX) {
+				countX = 0;
+				++countY;
+			}
+		}
+		if (countX != 0) {
+			std::cout << "utils::reshape(...): ERROR: Did not finish at line end" << std::endl;
+			throw;
+		}
+		if (countY != dimY) {
+			std::cout << "utils::reshape(...): ERROR: Did not find specified number of lines" << std::endl;
+			throw;
+		}
+		return retVal;	
+	}
+
 	std::vector<std::complex<double> > readComplexValuesFromTextFile(const std::string& inFileName, bool allowZeroLength = false) {
 		std::vector<std::complex<double> > retVal;
 		std::complex<double> c;
