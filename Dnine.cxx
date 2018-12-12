@@ -30,12 +30,12 @@ int main(int argc, char* argv[]) {
 		std::string argvString = std::string(argv[i]);
 		if (argvString == "-prior") {
 			usePrior = true;
-			std::cout << "Dnine::main(...): ERROR: Use inteference prior" << std::endl;
+			std::cout << "Dnine::main(...): INFO: Use inteference prior" << std::endl;
 			continue;
 		}
 		if (argvString == "-copy") {
 			copyRightToWrong = true;
-			std::cout << "Dnine::main(...): ERROR: Copy parameters from KpiRight to KpiWrong" << std::endl;
+			std::cout << "Dnine::main(...): INFO: Copy parameters from KpiRight to KpiWrong" << std::endl;
 			continue;
 		}
 		int waveIndex = atoi(argv[i]);
