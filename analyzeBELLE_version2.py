@@ -200,6 +200,13 @@ def getHessianFileName(inFileName):
 		theFileName = getResultFileName(inFileName)
 	return theFileName.replace("BELLE_fit_results/BELLE_fit_","BELLE_fit_results/hessians/BELLE_hessian_")
 
+def getCOMAfileName(inFileName):
+	if not "BELLE_startValues" in inFileName:
+		theFileName = inFileName
+	else:
+		theFileName = getResultFileName(inFileName)
+	return theFileName.replace("BELLE_fit_results/BELLE_fit_","BELLE_fit_results/hessians/BELLE_COMA_")
+
 def getResultFileName(inFileName):
 	theEnd = inFileName.split("_")[~0]
 	for fn in os.listdir("./build/BELLE_fit_results"):
@@ -207,28 +214,37 @@ def getResultFileName(inFileName):
 			return "./build/BELLE_fit_results/" + fn
 	raise IOError("No hessian file for: '"+fn+"'")
 
-def getHessian(hessianFileName, freeMap = None, fixMap = None):
-	hessian = []
-	with open(hessianFileName,'r') as inFile:
+def loadMatrix(inFileName, freeMap = None, fixMap = None):
+	matrix = []
+	with open(inFileName,'r') as inFile:
 		for line in inFile.readlines():
-			hessian.append([float(v) for v in line.split()])
+			matrix.append([float(v) for v in line.split()])
 
 	if freeMap is not None:
-		hss     = cutFree(hessian,freeMap, mult = 2, fixMap = fixMap)
-		hessian = []
+		hss     = cutFree(matrix,freeMap, mult = 2, fixMap = fixMap)
+		matrix = []
 		for line in hss:
-			hessian.append(cutFree(line, freeMap, mult = 2, fixMap = fixMap))
-	return np.asarray(hessian)
+			matrix.append(cutFree(line, freeMap, mult = 2, fixMap = fixMap))
+	return np.asarray(matrix)
 
 def getComaHist(resultFileName, fixMap, conj = False):
 	"""
 	Creates a histogram for the covariance matrix
 	"""
-	freeMap = getFreeMap(resultFileName)
+	freeMap         = getFreeMap(resultFileName)
 	hessianFileName = getHessianFileName(resultFileName)
-	nBin    = int((mD0-.5)/.04)
-	if os.path.isfile(hessianFileName):
-		hessian = getHessian(hessianFileName)
+	COMAfileName    = getCOMAfileName(resultFileName)
+	nBin            = int((mD0-.5)/.04)
+	if os.path.isfile(COMAfileName):
+		print "Using COMA file"
+		coma = loadMatrix(COMAfileName)
+		coma = cutFree(coma, freeMap, mult = 2, fixMap = fixMap)
+		COMA    = []
+		for line in coma:
+			COMA.append(cutFree(line,freeMap, mult = 2, fixMap = fixMap))
+
+	elif os.path.isfile(hessianFileName):
+		hessian = loadMatrix(hessianFileName)
 		coma    = la.pinv(hessian)
 		coma    = cutFree(coma,freeMap, mult = 2, fixMap = fixMap)
 		COMA    = []
