@@ -74,44 +74,44 @@ int main(int argc, char* argv[]) {
 	std::string integral_file_name = "integral_model_" + freeString; 
 /*
 	std::shared_ptr<integrator> fixed_integral = std::make_shared<integrator>(integral_points, generator, fixed_model, efficiency);
-	if (!fixed_integral->loadIntegrals(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchFileEnding,masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchFileEnding)) {
+	if (!fixed_integral->loadIntegrals(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchIntegralFileEnding,masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchIntegralFileEnding)) {
 		if (!fixed_integral->integrate()) {
 			if (!fixed_integral->integrate()) {
 				std::cout << "Dnine::main(...): ERROR: Fixed model integration failed" << std::endl;
 				return 1;
 			}
 		}
-		fixed_integral->writeToFile(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchFileEnding, false);
-		fixed_integral->writeToFile(masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchFileEnding, true);
+		fixed_integral->writeToFile(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchIntegralFileEnding, false);
+		fixed_integral->writeToFile(masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchIntegralFileEnding, true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: '.../integralFiles/ps_integral_model_000000000_regular."<<branchFileEnding<<"' and '..../integralFiles/ac_integral_model_000000000_regular."<<branchFileEnding<<"'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: '.../integralFiles/ps_integral_model_000000000_regular."<<branchIntegralFileEnding<<"' and '..../integralFiles/ac_integral_model_000000000_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
 */
-	if (!integral->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_file_name+"_regular."+branchFileEnding,masterDirectory+"integralFiles/ac_"+integral_file_name+"_regular."+branchFileEnding)) {
+	if (!integral->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_file_name+"_regular."+branchIntegralFileEnding,masterDirectory+"integralFiles/ac_"+integral_file_name+"_regular."+branchIntegralFileEnding)) {
 		if (!integral->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: Model integration failed" << std::endl;
 			return 1;
 		};
-		integral->writeToFile(masterDirectory+"integralFiles/ps_"+integral_file_name+"."+branchFileEnding, false);
-                integral->writeToFile(masterDirectory+"integralFiles/ac_"+integral_file_name+"."+branchFileEnding, true);
+		integral->writeToFile(masterDirectory+"integralFiles/ps_"+integral_file_name+"."+branchIntegralFileEnding, false);
+                integral->writeToFile(masterDirectory+"integralFiles/ac_"+integral_file_name+"."+branchIntegralFileEnding, true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_file_name+"_regular."<<branchFileEnding<<"' and '.../integralFiles/ac_"+integral_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_file_name+"_regular."<<branchIntegralFileEnding<<"' and '.../integralFiles/ac_"+integral_file_name+"_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
 
 	std::vector<std::shared_ptr<amplitude> > model_cp = get_model(free_map, mD0, mPi, mKs, true);
 	std::shared_ptr<integrator> integral_cp = std::make_shared<integrator>(integral_points, generator, model_cp, efficiency);
 	std::string integral_cp_file_name =  "integral_cp_model_" + freeString; 
 
-	if (!integral_cp->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_cp_file_name+"_regular."+branchFileEnding,masterDirectory+"integralFiles/ac_"+integral_cp_file_name+"_regular."+branchFileEnding)) {
+	if (!integral_cp->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_cp_file_name+"_regular."+branchIntegralFileEnding,masterDirectory+"integralFiles/ac_"+integral_cp_file_name+"_regular."+branchIntegralFileEnding)) {
 		if (!integral_cp->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: CP model integration failed" << std::endl;
 			return 1;
 
 		}
-		integral_cp->writeToFile(masterDirectory+"integralFiles/ps_"+integral_cp_file_name+"."+branchFileEnding, false);
-		integral_cp->writeToFile(masterDirectory+"integralFiles/ac_"+integral_cp_file_name+"."+branchFileEnding, true);
+		integral_cp->writeToFile(masterDirectory+"integralFiles/ps_"+integral_cp_file_name+"."+branchIntegralFileEnding, false);
+		integral_cp->writeToFile(masterDirectory+"integralFiles/ac_"+integral_cp_file_name+"."+branchIntegralFileEnding, true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_cp_file_name+"_regular."<<branchFileEnding<<"' and '.../integralFiles/ac_"+integral_cp_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_cp_file_name+"_regular."<<branchIntegralFileEnding<<"' and '.../integralFiles/ac_"+integral_cp_file_name+"_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
 
 	std::shared_ptr<amplitude> bg_amplitude = get_bg_amplitude(fs_masses);
@@ -119,16 +119,16 @@ int main(int argc, char* argv[]) {
 
 	std::string integral_bg_file_name = "integral_bg[" + bg_amplitude->name() + "]";
 
-	if (!integral_bg->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_bg_file_name+"_regular."+branchFileEnding,masterDirectory+"integralFiles/ac_"+integral_bg_file_name+"_regular."+branchFileEnding)) {
+	if (!integral_bg->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_bg_file_name+"_regular."+branchIntegralFileEnding,masterDirectory+"integralFiles/ac_"+integral_bg_file_name+"_regular."+branchIntegralFileEnding)) {
 		std::cout << "Dnine::main(...): WARNING: Could not load bg integral. Integrate" << std::endl;
 		if (!integral_bg->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: Background integration failed" << std::endl;
 			return 1;
 		}
-		integral_bg->writeToFile(masterDirectory+"integralFiles/ps_"+integral_bg_file_name+"."+branchFileEnding,false);
-		integral_bg->writeToFile(masterDirectory+"integralFiles/ac_"+integral_bg_file_name+"."+branchFileEnding,true);
+		integral_bg->writeToFile(masterDirectory+"integralFiles/ps_"+integral_bg_file_name+"."+branchIntegralFileEnding,false);
+		integral_bg->writeToFile(masterDirectory+"integralFiles/ac_"+integral_bg_file_name+"."+branchIntegralFileEnding,true);
 	} else {
-		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_bg_file_name+"_regular.' " <<branchFileEnding<< " and '.../integralFiles/ac_"+integral_bg_file_name+"_regular."<<branchFileEnding<<"'" <<std::endl;
+		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_bg_file_name+"_regular.' " <<branchIntegralFileEnding<< " and '.../integralFiles/ac_"+integral_bg_file_name+"_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
 
 	const bool signalEvents = true;
