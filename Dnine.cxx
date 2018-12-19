@@ -12,8 +12,6 @@ int main(int argc, char* argv[]) {
 
 	const std::string masterDirectory = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/";
 
-	const int softpionSign = 0;
-
 	const double f_sig  = 6.75192e-01;// +- 9.11090e-04
 	const double f_rand = 8.95779e-01;// +- 2.14394e-03
 	const double f_CP   = 0.492;
@@ -131,14 +129,13 @@ int main(int argc, char* argv[]) {
 		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_bg_file_name+"_regular.' " <<branchIntegralFileEnding<< " and '.../integralFiles/ac_"+integral_bg_file_name+"_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
 
-	const bool signalEvents = true;
-	std::string dataFileName;
-	if (signalEvents) {
-		dataFileName = masterDirectory+"BELLE_data.root";
-	} else {
-		dataFileName = masterDirectory+"BELLE_bothSidebandsHigherMD.root";
+	std::string dataFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build2/MC_data";
+	std::vector<std::vector<double> > dataPoints;
+	const size_t nDataExpected = 999996;
+	{
+		std::vector<double> linearDataPoints = utils::readRealValuesFromTextFile(dataFileName);
+		dataPoints = utils::reshape(linearDataPoints, 3, nDataExpected);
 	}
-	std::vector<std::vector<double> > dataPoints = getBELLEevents(dataFileName, softpionSign);
 	dataPoints = utils::sanitizeBELLEdataPoints(dataPoints, fs_masses);
 	const size_t nData = dataPoints.size();
 

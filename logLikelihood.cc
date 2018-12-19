@@ -774,6 +774,11 @@ bool logLikelihood::loadDataPoints(const std::vector<std::vector<double> >& data
 			std::complex<double> ampl = _amplitudes[a]->eval(dataPoints[p]);
 			if (std::isnan(ampl.real()) || std::isnan(ampl.imag())) {
 				std::cout << "logLikelihood::loadDataPoints(...): ERROR: NaN amplitude encountered for wave '" << _amplitudes[a]->name() << "': " << ampl << std::endl;
+				std::cout << "logLikelihood::loadDataPoints(...): ERROR: Kinematics of data point " << p << " are: ";
+				for (const double& p: dataPoints[p]) {
+					std::cout << p << " ";
+				}
+				std::cout << std::endl;
 				return false;
 			}
 
