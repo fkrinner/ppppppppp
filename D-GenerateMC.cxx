@@ -2,6 +2,9 @@
 #include <sstream>
 
 int main() {
+
+	std::cout << "D-GenerateMC::main(...): INFO: Branch file endings are: '" << branchFileEnding << "' '" << branchIntegralFileEnding << "'" << std::endl;
+
 	const size_t      integral_points = 6000*10*10*10*10; // Merged two 30000000 integrals for the model // Comment for ease bugfix
 	std::vector<bool> freeMap         = {false, false, false, false, false, false, false, false, false};
 	std::vector<bool> fixToZeroMap    = {false, false, false, false, false, false, false, false, false};

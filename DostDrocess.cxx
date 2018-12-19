@@ -2,6 +2,9 @@
 #include <sstream>
 
 int main(int argc, char* argv[]) {
+
+	std::cout << "DostDrocess::main(...): INFO: Branch file endings are: '" << branchFileEnding << "' '" << branchIntegralFileEnding << "'" << std::endl;
+
 	if (argc < 2) {
 		std::cout << "DostDrocess::main(...): ERROR: No input file given" << std::endl;
 		return 1;
