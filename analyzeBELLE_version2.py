@@ -14,7 +14,7 @@ from regularize_integral_matrix import parseMatrixFile, isHermitian, regulatrize
 import ROOT
 from rootfabi import root_open
 import datetime
-from getBranchFileEnding import getBranchFileEnding
+from getBranchFileEnding import getBranchFileEnding, getIntegralFileEnding
 
 INF = float('inf')
 
@@ -187,7 +187,7 @@ def getFreeMap(inFileName):
 	return retVal
 
 def getIntegralFileNames(inFileName):
-	bfe = '.' + getBranchFileEnding()
+	bfe = '.' + getIntegralFileEnding()
 	string = getFreeString(inFileName)
 	ps_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ps_integral_model_" + string + "_regular" + bfe
 	ac_fileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/integralFiles/ac_integral_model_" + string + "_regular" + bfe

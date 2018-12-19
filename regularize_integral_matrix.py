@@ -5,7 +5,7 @@
 import os, sys
 import numpy as np
 import numpy.linalg as la
-from getBranchFileEnding import getBranchFileEnding
+from getBranchFileEnding import getBranchFileEnding, getIntegralFileEnding
 
 def isHermitian(matrix, numLim = 1.e-15):
 	dim = len(matrix)
@@ -77,7 +77,7 @@ def regularize(inFileNames, outFileName):
 	writeMatrixFile(outFileName, regulatrizeMatrix(matrix))
 
 def main():
-	bfe = '.' + getBranchFileEnding()
+	bfe = '.' + getIntegralFileEnding()
 	if len(sys.argv) == 1:
 		folder = "./build/integralFiles/"
 		for fn in os.listdir(folder):

@@ -14,6 +14,22 @@ def getBranchFileEnding():
 				return line.split()[~0].replace('"','').replace(';','')
 	raise IOError("Could not load branchFileEnding from '" + inFileName + "'")
 
+
+def getIntegralFileEnding():
+	inFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/branchFileEnding.h"
+	bfeVal = None
+	with open(inFileName,'r') as inFile:
+		for line in inFile.readlines():
+			if line.strip().startswith("//"):
+				continue
+			if "branchIntegralFileEnding" in line:
+				return line.split()[~0].replace('"','').replace(';','')
+			if "branchFileEnding" in line: # If integral file ending in not given, us branch file ending
+				bfeVal = line.split()[~0].replace('"','').replace(';','')
+	if bfeVal is not None:
+		return bfeVal
+	raise IOError("Could not load branchFileEnding from '" + inFileName + "'")
+
 def main():
 	print getBranchFileEnding()
 
