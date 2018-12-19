@@ -14,8 +14,6 @@ int main(int argc, char* argv[]) {
 	bool do_dalitz_plot = false;
 	bool do_hessian     = false;
 	bool do_covariance  = false;
-//
-	const int softpionSign = 0;
 
 	std::string resultFileName = argv[1];
 	for (int i = 2; i < argc; ++i) {
@@ -158,19 +156,14 @@ int main(int argc, char* argv[]) {
 	}
 	std::shared_ptr<logLikelihood_withPrior> ll = std::make_shared<logLikelihood_withPrior>(model, integral);
 
-	const bool signalEvents = true;
-	std::string dataFileName;
-	if (signalEvents) {
-		dataFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_data.root";
-	} else {
-		dataFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build/BELLE_bothSidebandsHigherMD.root";
+	std::string dataFileName = "/nfs/freenas/tuph/e18/project/compass/analysis/fkrinner/ppppppppp/build2/MC_data";
+	std::vector<std::vector<double> > dataPoints;
+	const size_t nDataExpected = 999996;
+	{
+		std::vector<double> linearDataPoints = utils::readRealValuesFromTextFile(dataFileName);
+		dataPoints = utils::reshape(linearDataPoints, 3, nDataExpected);
 	}
-	std::vector<std::vector<double> > dataPoints = getBELLEevents(dataFileName, softpionSign);
 	dataPoints = utils::sanitizeBELLEdataPoints(dataPoints, fs_masses);
-	if (!ll->loadDataPoints(dataPoints, 25)) {
-		std::cout << "DostDrocess::main(...): ERROR: Could not load data points" << std::endl;
-		return 1;
-	}
 	std::cout << "DostDrocess::main(...): INFO: Finished loading data points to log-likelihood." << std::endl;
 
 	if (!doTheFixingAndCopying(ll, n_waves, CP_scale_factor, copy, fixToZeroMap, true)) {
