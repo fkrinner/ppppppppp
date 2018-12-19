@@ -2,6 +2,8 @@
 
 int main(int argc, char* argv[]) {
 
+	std::cout << "Dnine::main(...): INFO: Branch file endings are: '" << branchFileEnding << "' '" << branchIntegralFileEnding << "'" << std::endl;
+
 	TH2D ful = TH2D("full_dalitz", "fullDalitz", 100, 0.,2.2, 100 ,0.3 , 3.3);
 	const size_t seed = size_t( time(NULL) );
 	std::cout << "Dnine::main(...): INFO: Seed: " << seed << std::endl;
