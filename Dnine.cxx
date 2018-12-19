@@ -2,6 +2,7 @@
 
 int main(int argc, char* argv[]) {
 
+
 	TH2D ful = TH2D("full_dalitz", "fullDalitz", 100, 0.,2.2, 100 ,0.3 , 3.3);
 	const size_t seed = size_t( time(NULL) );
 	std::cout << "Dnine::main(...): INFO: Seed: " << seed << std::endl;
@@ -20,7 +21,7 @@ int main(int argc, char* argv[]) {
 	const double total_CP_coefficient    = (1.-f_sig)*(1.-f_rand)*f_CP;
 	const double total_bg_coefficient    = (1.-f_sig)*f_rand;
 
-	std::cout << "Signal coefficient: " << total_signal_coefficient << "; CP coefficient: " << total_CP_coefficient << "; BG coefficient: " << total_bg_coefficient << std::endl;
+	std::cout << "Dnine::main(...): INFO: Signal coefficient: " << total_signal_coefficient << "; CP coefficient: " << total_CP_coefficient << "; BG coefficient: " << total_bg_coefficient << std::endl;
 
 	std::vector<bool> free_map          = {false, false, false, false, false, false, false, false , false};
 	std::vector<bool> fixToZeroList     = {false, false, false, false, false, false, false, false , false};
@@ -65,37 +66,31 @@ int main(int argc, char* argv[]) {
 	std::shared_ptr<efficiencyFunction> efficiency        = std::make_shared<BELLE_DtoKpipi_efficiency_CP>(fs_masses);
 
 	std::vector<std::shared_ptr<amplitude> > model       = get_model(free_map, mD0, mPi, mKs);
-//	std::vector<std::shared_ptr<amplitude> > fixed_model = get_model({false, false, false, false, false, false, false, false, false}, mD0, mPi, mKs);
+	std::vector<std::shared_ptr<amplitude> > fixed_model = get_model({false, false, false, false, false, false, false, false, false}, mD0, mPi, mKs);
 	const size_t n_model = model.size();
 
 	std::shared_ptr<integrator> integral = std::make_shared<integrator>(integral_points, generator, model, efficiency);
 	std::string integral_file_name = "integral_model_" + freeString; 
-/*
+
 	std::shared_ptr<integrator> fixed_integral = std::make_shared<integrator>(integral_points, generator, fixed_model, efficiency);
-	if (!fixed_integral->loadIntegrals(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchIntegralFileEnding,masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchIntegralFileEnding)) {
-		if (!fixed_integral->integrate()) {
-			if (!fixed_integral->integrate()) {
-				std::cout << "Dnine::main(...): ERROR: Fixed model integration failed" << std::endl;
-				return 1;
-			}
-		}
-		fixed_integral->writeToFile(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchIntegralFileEnding, false);
-		fixed_integral->writeToFile(masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchIntegralFileEnding, true);
+	if (!fixed_integral->loadIntegrals(masterDirectory+"integralFiles/ps_integral_model_000000000_regular."+branchIntegralFileEnding, masterDirectory+"integralFiles/ac_integral_model_000000000_regular."+branchIntegralFileEnding)) {
+		std::cout << "Dnine::main(...): ERROR: Could not load: '.../integralFiles/ps_integral_model_000000000_regular."<<branchIntegralFileEnding<<"' and '..../integralFiles/ac_integral_model_000000000_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
+		return 1;
 	} else {
 		std::cout << "Dnine::main(...): INFO: Loaded: '.../integralFiles/ps_integral_model_000000000_regular."<<branchIntegralFileEnding<<"' and '..../integralFiles/ac_integral_model_000000000_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
-*/
+	std::vector<double> norms_fixed = fixed_integral->getNormalizations().second;
 	if (!integral->loadIntegrals(masterDirectory+"integralFiles/ps_"+integral_file_name+"_regular."+branchIntegralFileEnding,masterDirectory+"integralFiles/ac_"+integral_file_name+"_regular."+branchIntegralFileEnding)) {
 		if (!integral->integrate()) {
 			std::cout << "Dnine::main(...): ERROR: Model integration failed" << std::endl;
 			return 1;
-		};
+		}
 		integral->writeToFile(masterDirectory+"integralFiles/ps_"+integral_file_name+"."+branchIntegralFileEnding, false);
                 integral->writeToFile(masterDirectory+"integralFiles/ac_"+integral_file_name+"."+branchIntegralFileEnding, true);
 	} else {
 		std::cout << "Dnine::main(...): INFO: Loaded: " << "'.../integralFiles/ps_"+integral_file_name+"_regular."<<branchIntegralFileEnding<<"' and '.../integralFiles/ac_"+integral_file_name+"_regular."<<branchIntegralFileEnding<<"'" <<std::endl;
 	}
-
+	std::vector<double> norms_free = integral->getNormalizations().second;
 	std::vector<std::shared_ptr<amplitude> > model_cp = get_model(free_map, mD0, mPi, mKs, true);
 	std::shared_ptr<integrator> integral_cp = std::make_shared<integrator>(integral_points, generator, model_cp, efficiency);
 	std::string integral_cp_file_name =  "integral_cp_model_" + freeString; 
@@ -219,7 +214,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Dnine::main(...): INFO: Start fitting" << std::endl;
 
 // HERE ARE THE NFITS // // // // // // // // // // // // // // // // // // // /
-	const size_t nFits = 10;
+	const size_t nFits = 1;
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
 	double bestLL = std::numeric_limits<double>::infinity();
@@ -241,7 +236,12 @@ int main(int argc, char* argv[]) {
 //		BELLE_result_values.push_back(std::complex<double>(pow(nData * total_bg_coefficient/integral_bg->totalIntensity(std::vector<std::complex<double> >(1,std::complex<double>(1.,0.)), true), .5),0.));
 
 		std::complex<double> bg_production_amplitude(pow(nData * total_bg_coefficient/integral_bg->totalIntensity(std::vector<std::complex<double> >(1,std::complex<double>(1.,0.)), true), .5), 0.);
-		std::vector<std::complex<double> > startValues = getRandomizedStartValues( n_waves, CP_scale_factor, true, copyRightToWrong, bg_production_amplitude);
+
+		std::vector<std::complex<double> > startValues = getStartValuesForBelleParameters(free_map, norms_free, norms_fixed);
+		for (size_t a = 0; a < n_model; ++a) {
+			startValues.push_back(startValues[a]);
+		}
+		startValues.push_back(bg_production_amplitude);
 
 		{ // Normalize to number of events... keep the BG coefficient
 			std::complex<double> BG_coeff = startValues[2*n_model];
